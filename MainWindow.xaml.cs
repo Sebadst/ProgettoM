@@ -66,10 +66,8 @@ namespace ProgettoPDS
                     }
                     else if(folder_present=="NULL")
                     {
-                        //TODO change this terrible thing of doing again the login
-                        client.connect_to_server();
-                        login = client.login(username.Text, password.Password);
                         
+            
                         //if not, open the addfolder window
                         AddFolder add_f = new AddFolder(client);
                         add_f.Show();
