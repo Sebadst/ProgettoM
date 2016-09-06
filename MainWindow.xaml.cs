@@ -21,25 +21,18 @@ namespace ProgettoPDS
     /// prova modifica
     public partial class MainWindow : Window
     {
-       
-       
         public MainWindow()
         {
             InitializeComponent();
-       
-
-          
-
         }
+        
         public MainWindow(string message)
         {
             InitializeComponent();
-            this.message.Content = message;
-            
-        
-            
+            this.message.Content = message;    
         }
 
+        //called when signup button is clicked
         private void signup_Click(object sender, RoutedEventArgs e)
         {
             Signup_window signup_win = new Signup_window();
@@ -48,6 +41,7 @@ namespace ProgettoPDS
             this.Close();
         }
 
+        //called when login button is clicked
         private void login_Click(object sender, RoutedEventArgs e)
         {
             
@@ -55,59 +49,45 @@ namespace ProgettoPDS
                 message.Content = "Non lasciare campi vuoti";
             else
             {
-             
-                       Client client = new Client(username.Text,password.Password);
-                     
-                      client.connect_to_server();
-
-                       
-                      int login = client.login(username.Text, password.Password);
+                Client client = new Client(username.Text,password.Password);
+                client.connect_to_server();                      
+                int login = client.login(username.Text, password.Password);
+                //login ok
                 if (login == 1)
                 {
+                    //check if client already chose a folder
                     string folder_present = client.ask_presence(username.Text);
                     if (folder_present!="NULL")
                     {
-                       
+                       //if yes, open the viewfolder window
                         ViewFolder view_f = new ViewFolder(client,folder_present);
                         view_f.Show();
                         this.Close();
-                       
                     }
                     else if(folder_present=="NULL")
                     {
-                        //TODO change this terrible thing of doing again the login
-                        client.connect_to_server();
-
-                        login = client.login(username.Text, password.Password);
-                        AddFolder add_f = new AddFolder(client);
-                        add_f.Show();
-                        this.Close();
-                    }
-                      
+                       //if not, open the addfolder window
+                       AddFolder add_f = new AddFolder(client);
+                       add_f.Show();
+                       this.Close();
+                    }     
                     else
                     {
-                    //errore di connessione
-                    message.Content = "Nessuna risposta dal server";
+                        //connection error
+                        message.Content = "Nessuna risposta dal server";
                     }
                 }
+                //wrong credentials
                 else if (login == 0)
                 {
-                    //credenziali errate
-                    //stampo un messaggio e do la possibilita di rifare il login
                     message.Content = "Username o pwd errati";
                 }
                 else
                 {
-                    //errore di connessione
+                    //connection error
                     message.Content = "Nessuna risposta dal server";
                 }
-            
-            }
-            
+            }   
         }
-
-       
-
-        
     }
 }
