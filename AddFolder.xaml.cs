@@ -33,52 +33,51 @@ namespace ProgettoPDS
             pbar.IsIndeterminate = false;
         }
 
+        //called when choose folder is clicked
         private void choose_folder_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
             System.Windows.Forms.DialogResult result = dialog.ShowDialog();
-
-
-
             // Get the selected file name and display in a TextBox 
             if (result == System.Windows.Forms.DialogResult.OK)
             {
                 // Open document 
                 string filename = dialog.SelectedPath;
-
                 path.Text = filename;
             }
-
         }
+
         //asynchronous logic
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
             try
             {
-            var arg = (arguments)e.Argument; // to access elements ui from this thread
-            (sender as BackgroundWorker).ReportProgress(0); //start pbar
-            //put the operation here
-            // string extractPath = @"C:\Users\sds\Desktop\progetto";
-            //TODO change the path
-            string zipPath = @"C:\Users\sds\Desktop\progetto\result.zip";
-            //arg.path in place of startPath
-            ZipFile.CreateFromDirectory(arg.path, zipPath);
-            //ZipFile.ExtractToDirectory(zipPath, extractPath);
-
-            //SEND THE ZIP FILE
-            
+                // to access elements ui from this thread
+                var arg = (arguments)e.Argument;
+                //start pbar
+                (sender as BackgroundWorker).ReportProgress(0); 
+                //put the operation here
+                string zipPath = System.IO.Path.Combine(MyGlobalClient.zipDirectory,"result.zip");
+                ZipFile.CreateFromDirectory(arg.path, zipPath);
+                //send the zip file
                 client.send_zip(arg.path, zipPath);    
+                //check if it exists just as best practice, but normally it exists
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
                 e.Result=1;
             }
             catch (Exception ex)
             {
+                //in case of error connection or other errors
                 e.Result = -1;
             }
                 //change window
-            //commentato l'ultima volta
+                //commentato l'ultima volta
 
             
-            //store the result
+                //store the result
                         
         }
         void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)

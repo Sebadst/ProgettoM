@@ -67,6 +67,7 @@
     <Compile Include="Home_window.xaml.cs">
       <DependentUpon>Home_window.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MyGlobalClient.cs" />
     <Compile Include="Signup_window.xaml.cs">
       <DependentUpon>Signup_window.xaml</DependentUpon>
     </Compile>
