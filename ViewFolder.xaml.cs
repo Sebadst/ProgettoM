@@ -29,14 +29,13 @@ namespace ProgettoPDS
         string path_to_synch;
         public ViewFolder(Client client,string path)
         {
+            /*
+             * constructor of viewfolder. in charge of calling the synchronize for the first time
+             */
             try
             {
                 InitializeComponent();
                 path_to_synch = path;
-
-
-
-
                 this.client = client;
                 List<string> items = new List<string>();
                 client.connect_to_server();
@@ -46,6 +45,7 @@ namespace ProgettoPDS
                 var dueTime = TimeSpan.FromMinutes(1);
                 var interval = TimeSpan.FromMinutes(1);
                 pbar.IsIndeterminate = false;
+                pbar.Visibility = Visibility.Hidden;
                 periodicSynchronization(dueTime, interval, CancellationToken.None);
             }
             catch (Exception ex)
@@ -56,7 +56,6 @@ namespace ProgettoPDS
         }
 
        
-        // I need to pass ViewFolder since I'll recall this method in other classes (right?)
         public void create_tree(List<string>items,ViewFolder v){
             string []format = {"yyyyMMdd-HHmm"};
             DateTime date;
@@ -72,15 +71,14 @@ namespace ProgettoPDS
             d.Add(System.IO.Path.GetDirectoryName(items[1]), root);
             string previous_path = System.IO.Path.GetDirectoryName(items[1]);
             paths.Add(System.IO.Path.GetDirectoryName(items[1]));
-            //starting from the 3nd element
+            //starting from the 3rd element
             foreach (string filename in items.GetRange(2,items.Count-2))
             {
                 if (DateTime.TryParseExact(filename, format, new CultureInfo("en-US"),
                               DateTimeStyles.None, out date))
                 {
                     Console.WriteLine(filename);
-                    other_data = new MenuItem() { Title = filename };
-                    
+                    other_data = new MenuItem() { Title = filename };                   
                     continue;
                 }
                 //take the path
@@ -149,22 +147,22 @@ namespace ProgettoPDS
                     found = false;
                 }
             }
-
             if (root != null)
                 v.folders.Items.Add(root);
             //for the last time
             v.folders.Items.Add(other_data);
             v.folders.Items.Add(other_root);
-            
         }
         private void download_Click(object sender, RoutedEventArgs e)
         {
+            /*
+             * called when download_button is clicked
+             */
             string[] format = { "yyyyMMdd-HHmm" };
             DateTime date;
             try
             {
                 String f = (folders.SelectedItem as MenuItem).Title;
-                //Console.WriteLine(f.Title);
                 if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
                                 DateTimeStyles.None, out date))
                     return;
@@ -176,12 +174,11 @@ namespace ProgettoPDS
                 message.Content = "Errore di connessione al server nel download";
             }
         }
+
         public void periodicSynchronization(TimeSpan dueTime,
                                             TimeSpan interval,
                                             CancellationToken token)
         {
-
-
             try
             {
                 //asynchronous logic
@@ -196,17 +193,14 @@ namespace ProgettoPDS
             catch (Exception ex)
             {
                 message.Content = "Errore di connessione al server durante la sincronizzazione";
-            }
-            
+            }   
         }
 
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
-           // while (true)
-            //{
             try
             {
-                var interval = TimeSpan.FromSeconds(30);//FromMinutes(1);
+                var interval = TimeSpan.FromMinutes(MyGlobalClient.minutes_for_synch);
                 Thread.Sleep(interval);
                 int result = 0; // used for the worker result
                 var arg = (arguments)e.Argument; // to access elements ui from this thread
@@ -219,23 +213,25 @@ namespace ProgettoPDS
             {
                 e.Result = -1;
             }
-            //}
         }
+
         void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-
             if (e.UserState == null)
-                pbar.IsIndeterminate = true;
+            {
+                pbar.Visibility = Visibility.Visible;
+                pbar.IsIndeterminate = true;   
+            }
         }
+
         void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            // path.Text = e.Result.ToString(); //for debug
-            pbar.IsIndeterminate = false;
+            /*
+             * when synchronization ends, restart the timeout for next synchronization
+             */
+            pbar.Visibility = Visibility.Hidden;
             if ((int)e.Result != -1)
             {
-                
-
-
                 BackgroundWorker worker = new BackgroundWorker();
                 worker.WorkerReportsProgress = true;
                 worker.DoWork += worker_DoWork;
@@ -257,21 +253,18 @@ namespace ProgettoPDS
             {
                 if (y == null)
                 {
-                    // If x is null and y is null, they're
-                    // equal. 
+                    // If x is null and y is null, they're equal. 
                     return 0;
                 }
                 else
                 {
-                    // If x is null and y is not null, y
-                    // is greater. 
+                    // If x is null and y is not null, y is greater. 
                     return 1;
                 }
             }
             else
             {
                 // If x is not null...
-                //
                 if (y == null)
                 // ...and y is null, x is greater.
                 {
@@ -279,31 +272,23 @@ namespace ProgettoPDS
                 }
                 else
                 {
-                    // ...and y is not null, compare the 
-                    // lengths of the two strings.
-                    //
+                    // ...and y is not null, compare the lengths of the two strings.
                     int retval = x.Length.CompareTo(y.Length);
-
                     if (retval != 0)
                     {
-                        // If the strings are not of equal length,
-                        // the longer string is greater.
-                        //
+                        // If the strings are not of equal length, the longer string is greater.
                         if (retval == 1)
                             return -1;
                         else return 1;
                     }
                     else
                     {
-                        // If the strings are of equal length,
-                        // sort them with ordinary string comparison.
-                        //
+                        // If the strings are of equal length, sort them with ordinary string comparison.
                         return x.CompareTo(y);
                     }
                 }
             }
         }
-
     }
 
     public class MenuItem

@@ -31,11 +31,15 @@ namespace ProgettoPDS
             InitializeComponent();
             this.client = client;
             pbar.IsIndeterminate = false;
+            pbar.Visibility = Visibility.Hidden;
         }
 
-        //called when choose folder is clicked
+        
         private void choose_folder_Click(object sender, RoutedEventArgs e)
         {
+           /*
+             * called when choose folder is clicked
+             */
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
             System.Windows.Forms.DialogResult result = dialog.ShowDialog();
             // Get the selected file name and display in a TextBox 
@@ -47,9 +51,12 @@ namespace ProgettoPDS
             }
         }
 
-        //asynchronous logic
+        
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
+            /*
+             * asynchronous logic
+             */
             try
             {
                 // to access elements ui from this thread
@@ -72,28 +79,25 @@ namespace ProgettoPDS
             {
                 //in case of error connection or other errors
                 e.Result = -1;
-            }
-                //change window
-                //commentato l'ultima volta
-
-            
-                //store the result
-                        
+            }              
         }
+
         void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
 
             if (e.UserState == null)
+            {
+                pbar.Visibility = Visibility.Visible;
                 pbar.IsIndeterminate = true;
-        }
+            }
+         }
+        
         void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             try
             {
                 if ((int)e.Result == 1)
                 {
-                    //pbar.IsIndeterminate = false;
-                    //TODO a check if everything ok. at this point we can open the new window
                     //we pass also path.text to be used in synchronization afterwards
                     ViewFolder view = new ViewFolder(client, path.Text);
                     view.Show();
@@ -101,6 +105,7 @@ namespace ProgettoPDS
                 }
                 else
                 {
+                    pbar.Visibility = Visibility.Hidden;
                     pbar.IsIndeterminate = false;
                     message.Content = "Errore, server non raggiungibile";
                 }
@@ -113,14 +118,15 @@ namespace ProgettoPDS
        
         private void load_folder_Click(object sender, RoutedEventArgs e)
         {
-
+            /*
+             * called when the user click the load_folder button
+             */
             if (path.Text != "")
             {
-
-                //  ZIP THE FILE
+                //  zip the file
                 string startPath = @path.Text;
                 //check dimension<1gb
-                if (client.dirSize(new DirectoryInfo(startPath)) > 1073741824)
+                if (client.dirSize(new DirectoryInfo(startPath)) > MyGlobalClient.folder_max_dim)
                 {
                     message.Content = "Non e' possibile caricare cartelle di dimensioni maggiori di 1 GB";
                 }
@@ -128,8 +134,6 @@ namespace ProgettoPDS
                 {
                     try
                     {
-
-                        //asynchronous
                         //asynchronous logic
                         BackgroundWorker worker = new BackgroundWorker();
                         worker.WorkerReportsProgress = true;
@@ -144,7 +148,7 @@ namespace ProgettoPDS
                         Console.WriteLine(exc.StackTrace);
                         message.Content = "Errore, impossibile contattare il server";
                     }
-                   
+                    //TODO understand why here and not in runwork completed or just in the construct of viewfolder
                     //here I will call the periodic method
                     //var dueTime = TimeSpan.FromMinutes(1);
                     //var interval = TimeSpan.FromMinutes(1);

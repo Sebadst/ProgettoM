@@ -9,6 +9,7 @@ namespace ProgettoPDS
     class MyGlobalClient
     {
         public static string zipDirectory = @"C:\Users\sds\Desktop\progetto\";
-
+        public static int folder_max_dim = 1073741824; // 1 GB
+        public static int minutes_for_synch = 1;
     }
 }
