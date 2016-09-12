@@ -57,6 +57,9 @@ namespace ProgettoPDS
 
        
         public void create_tree(List<string>items,ViewFolder v){
+            /*
+             * create tree of folders to be visualized for the user
+             */
             string []format = {"yyyyMMdd-HHmm"};
             DateTime date;
             MenuItem other_root = null;
@@ -153,6 +156,7 @@ namespace ProgettoPDS
             v.folders.Items.Add(other_data);
             v.folders.Items.Add(other_root);
         }
+
         private void download_Click(object sender, RoutedEventArgs e)
         {
             /*
@@ -293,6 +297,9 @@ namespace ProgettoPDS
 
     public class MenuItem
     {
+        /*
+         * object that represents each element visualized in this window for the user
+         */
         public MenuItem()
         {
             this.Items = new ObservableCollection<MenuItem>();

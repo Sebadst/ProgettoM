@@ -32,19 +32,21 @@ namespace ProgettoPDS
             this.message.Content = message;    
         }
 
-        //called when signup button is clicked
         private void signup_Click(object sender, RoutedEventArgs e)
         {
-            Signup_window signup_win = new Signup_window();
-        
+            /*
+             *called when signup button is clicked 
+             */
+            Signup_window signup_win = new Signup_window();        
             signup_win.Show();
             this.Close();
         }
 
-        //called when login button is clicked
         private void login_Click(object sender, RoutedEventArgs e)
         {
-            
+            /*
+             * called when login button is clicked
+             */
             if (username.Text == "" || password.Password == "")
                 message.Content = "Non lasciare campi vuoti";
             else
@@ -65,9 +67,7 @@ namespace ProgettoPDS
                         this.Close();
                     }
                     else if(folder_present=="NULL")
-                    {
-                        
-            
+                    {            
                         //if not, open the addfolder window
                         AddFolder add_f = new AddFolder(client);
                         add_f.Show();

@@ -64,9 +64,6 @@
       <DependentUpon>AddFolder.xaml</DependentUpon>
     </Compile>
     <Compile Include="Client.cs" />
-    <Compile Include="Home_window.xaml.cs">
-      <DependentUpon>Home_window.xaml</DependentUpon>
-    </Compile>
     <Compile Include="MyGlobalClient.cs" />
     <Compile Include="Signup_window.xaml.cs">
       <DependentUpon>Signup_window.xaml</DependentUpon>
@@ -75,10 +72,6 @@
       <DependentUpon>ViewFolder.xaml</DependentUpon>
     </Compile>
     <Page Include="AddFolder.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Home_window.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

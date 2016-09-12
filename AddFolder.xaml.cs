@@ -148,22 +148,12 @@ namespace ProgettoPDS
                         Console.WriteLine(exc.StackTrace);
                         message.Content = "Errore, impossibile contattare il server";
                     }
-                    //TODO understand why here and not in runwork completed or just in the construct of viewfolder
-                    //here I will call the periodic method
-                    //var dueTime = TimeSpan.FromMinutes(1);
-                    //var interval = TimeSpan.FromMinutes(1);
+                    
                 }
             }
+            // TODO: understand if I need this or if i can delete it.
             // TODO: Add a CancellationTokenSource and supply the token here instead of None.
-            //client.periodicSynchronization(dueTime,interval, CancellationToken.None,path.Text);
-
-            //aggiunto per testare
-          
-            //DA DECOMMENTARE PER LA SYNCHRONIZE
-            
-            //client.connect_to_server();
-            //client.synchronize(path.Text);
-             
+            //client.periodicSynchronization(dueTime,interval, CancellationToken.None,path.Text);    
         }
     }
 }

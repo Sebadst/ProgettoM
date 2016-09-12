@@ -25,9 +25,12 @@ namespace ProgettoPDS
             InitializeComponent();
         }
 
-        //FARE CLOSE SOCKET
+       
         private void ButtonClicked(object sender, RoutedEventArgs e)
         {
+            /*
+             * called when signup button is clicked
+             */
             if (username.Text == "" || password.Password == "" || repassword.Password == "")
                 message.Content = "Non lasciare campi vuoti";
             else if (password.Password != repassword.Password)
@@ -35,43 +38,28 @@ namespace ProgettoPDS
             else
             {
                 message.Content = "Ok";
-                //ora devo controllare se e' gia presente un utente con questo nome
+                //check if username already present in db
                 Client client = new Client(username.Text, password.Password);
-                //DECOMMENTARE
                 client.connect_to_server();
-                //DECOMMENTARE
                 int signup=client.signup(username.Text, password.Password);
-                //int signup = 1;
-                
                 if (signup==1)
                 {
-                    //signup a buon fine
-                    //apro finestra dell'utente
-                  
+                    //signup ok. open user main_window
                     MainWindow m = new MainWindow("Registrazione effettuata");
-                   
                     m.Show();
-                    /*
-                    Home_window home_win = new Home_window(username.Text);
-                    home_win.Show();
-                    */
                     this.Close();
                 }
                 else if (signup == 0)
                 {
-                    //credenziali errate
-                    //stampo un messaggio e do la possibilita di rifare il signup
+                    //wrong credentials
                     message.Content = "L'utente e' gia' presente";
                 }
                 else
                 {
-                    //errore di connessione
+                    //connection error
                     message.Content = "Nessuna risposta dal server";
                 }
-                
-               
             }
-
         }
     }       
 }
