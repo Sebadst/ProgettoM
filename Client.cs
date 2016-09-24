@@ -199,7 +199,7 @@ namespace ProgettoPDS
         public void browse_folder_json(string filename)
         {
             /*
-             * browse list of files with md5. callend in synchronize 
+             * browse list of files with md5. called in synchronize 
              */
             try
             {
@@ -267,17 +267,19 @@ namespace ProgettoPDS
              */
             try
             {
-                //TODO: metti in cartella tmp
-                //TODO: put everything in the same folder of the files downloaded
+                
                 f = f.Substring(f.LastIndexOf("\\"), f.Length - f.LastIndexOf("\\"));
-                FileStream fStream = new FileStream(@"C:\Users\sds\Desktop\" + f + ".rar", FileMode.Create);
+                FileStream fStream = new FileStream(MyGlobalClient.downloadDirectory + f + ".rar", FileMode.Create);
                 // read the file in chunks of 1KB
                 var buffer = new byte[1024];
                 int bytesRead;
-                //leggo la lunghezza
+                //read length and send ok
                 bytesRead = tcpclnt.Client.Receive(buffer);
                 string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                 int length = Convert.ToInt32(cmdFileSize);
+                byte[] credentials = Encoding.UTF8.GetBytes("OK");
+                tcpclnt.Client.Send(credentials, SocketFlags.None);
+
                 int received = 0;
                 while (received < length)
                 {
@@ -299,7 +301,8 @@ namespace ProgettoPDS
                 throw;
             }
         }
-       
+       //TODO: fix this and the other recv files because i need to send something after receiving the size
+        //the same in the server version
         public void wrap_recv_file(string f)
         {
             /*
@@ -307,8 +310,8 @@ namespace ProgettoPDS
              */
             try
             {
-                //TODO: put in tmp folder
                 f = Path.GetFileName(f);
+                f = Path.Combine(MyGlobalClient.downloadDirectory, f);
                 FileStream fStream = new FileStream(f, FileMode.Create);
                 // read the file in chunks of 1KB
                 var buffer = new byte[1024];
@@ -379,7 +382,7 @@ namespace ProgettoPDS
                     //wrap_recv_file();
                     byte [] rcv = new byte[1500];
                     int byteCount = tcpclnt.Client.Receive(rcv, SocketFlags.None);
-                    //TODO check if bytecount=0, remote host died
+                    //TODO: check if bytecount=0, remote host died, throw an exception probably
                     if (byteCount > 0)
                     {
                         //check if empty sendlist
@@ -412,7 +415,7 @@ namespace ProgettoPDS
                             Console.WriteLine("Something wrong. remote host died");
                         }
                     }
-                //TODO change it, this way is not good if some files less.
+                //TODO: change it, this way is not good if some files less.
                 //if (update_viewfolder == true)
                 //{
                 connect_to_server();
@@ -445,7 +448,6 @@ namespace ProgettoPDS
             //}
         }
         
-        //return 1 if folder already present
         public List<string> view_folders(){
             /*
              * send view request for visualize files in the server. V:username
@@ -480,6 +482,7 @@ namespace ProgettoPDS
                 throw;
             }
         }
+
         //TODO: change class in which this method is located, maybe add a folder class
         public long dirSize(DirectoryInfo d)
         {
@@ -529,6 +532,7 @@ namespace ProgettoPDS
                 throw;
             }
         }
+        //TODO: CHECK IF I NEED THIS OR IF I CAN JUST REMOVE IT
         /*
         //we will call this periodic method after we checked we already have something synchronized
         public async Task periodicSynchronization(TimeSpan dueTime, 

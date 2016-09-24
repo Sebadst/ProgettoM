@@ -34,7 +34,6 @@ namespace ProgettoPDS
             pbar.Visibility = Visibility.Hidden;
         }
 
-        
         private void choose_folder_Click(object sender, RoutedEventArgs e)
         {
            /*
@@ -84,7 +83,6 @@ namespace ProgettoPDS
 
         void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-
             if (e.UserState == null)
             {
                 pbar.Visibility = Visibility.Visible;

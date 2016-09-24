@@ -25,7 +25,6 @@ namespace ProgettoPDS
             InitializeComponent();
         }
 
-       
         private void ButtonClicked(object sender, RoutedEventArgs e)
         {
             /*

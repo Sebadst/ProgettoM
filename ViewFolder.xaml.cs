@@ -112,8 +112,7 @@ namespace ProgettoPDS
                     //i have to save all previous folders and check where I have to put this new one.
                     paths.Sort(CompareByLength);
                     foreach (string s in paths)
-                    {
-                        
+                    {                    
                         if(path.Contains(s)){
                             //the folder
                             MenuItem childItem=new MenuItem() { Title = path };
@@ -236,23 +235,27 @@ namespace ProgettoPDS
             pbar.Visibility = Visibility.Hidden;
             if ((int)e.Result != -1)
             {
-                BackgroundWorker worker = new BackgroundWorker();
-                worker.WorkerReportsProgress = true;
-                worker.DoWork += worker_DoWork;
-                worker.ProgressChanged += worker_ProgressChanged;
-                worker.RunWorkerCompleted += worker_RunWorkerCompleted;
-                var arg = new arguments() { path = path_to_synch };
-                worker.RunWorkerAsync(arg);
+                message.Content = "";
             }
             else
             {
                 message.Content = "Errore di connessione al server durante la sincronizzazione";
             }
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.WorkerReportsProgress = true;
+            worker.DoWork += worker_DoWork;
+            worker.ProgressChanged += worker_ProgressChanged;
+            worker.RunWorkerCompleted += worker_RunWorkerCompleted;
+            var arg = new arguments() { path = path_to_synch };
+            worker.RunWorkerAsync(arg);
         }
 
 
         private static int CompareByLength(string x, string y)
         {
+            /*
+             * used to sort the folders for a correct visualization
+             */
             if (x == null)
             {
                 if (y == null)
@@ -312,6 +315,5 @@ namespace ProgettoPDS
     public class arguments
     {
         public string path;
-    }
-    
+    }    
 }
