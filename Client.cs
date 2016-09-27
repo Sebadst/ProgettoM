@@ -209,10 +209,19 @@ namespace ProgettoPDS
                 foreach (var file in d.GetFiles())
                 {
                     Console.WriteLine(file.FullName);
-                    string hash = compute_md5(file.FullName);
-                    int l = file.FullName.Length - 3;
-                    string namefile = file.FullName.Substring(3, l);
-                    file_hash.Add(namefile, hash);
+                    //check on length of absolute path. if too long just don't send his info. veeery important
+                    if (file.FullName.Length+MyGlobalClient.rootFolderServer.Length+username.Length < 255)
+                    {
+                        string hash = compute_md5(file.FullName);
+                        int l = file.FullName.Length - 3;
+                        string namefile = file.FullName.Substring(3, l);
+                        file_hash.Add(namefile, hash);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Path too long");
+                        //TODO: write something in the user interface also
+                    }
                 }
             }
             catch
@@ -229,7 +238,6 @@ namespace ProgettoPDS
             return BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower();
         }
 
-        
         public void wrap_send_file(string file)
         {
             /*
@@ -254,8 +262,9 @@ namespace ProgettoPDS
                     throw new Exception();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.StackTrace);
                 throw;
             }
         }
@@ -296,13 +305,18 @@ namespace ProgettoPDS
                 fStream.Close();
                 Console.WriteLine("File Ricevuto");
             }
-            catch
+            
+            catch (System.IO.PathTooLongException ex)
+            {
+                Console.WriteLine("too long filename, it will not uploaded");
+                throw; // "too long filename, it will not uploaded";
+            }
+            catch (Exception ex)
             {
                 throw;
             }
         }
-       //TODO: fix this and the other recv files because i need to send something after receiving the size
-        //the same in the server version
+
         public void wrap_recv_file(string f)
         {
             /*
@@ -320,6 +334,8 @@ namespace ProgettoPDS
                 bytesRead = tcpclnt.Client.Receive(buffer);
                 string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                 int length = Convert.ToInt32(cmdFileSize);
+                byte[] credentials = Encoding.UTF8.GetBytes("OK");
+                tcpclnt.Client.Send(credentials, SocketFlags.None);
                 int received = 0;
                 while (received < length)
                 {
@@ -380,9 +396,11 @@ namespace ProgettoPDS
                     credentials = Encoding.UTF8.GetBytes(json);
                     tcpclnt.Client.Send(credentials, SocketFlags.None);
                     //wrap_recv_file();
-                    byte [] rcv = new byte[1500];
+                    //TODO: same problem of the server, 15 MB maybe not enough
+                    byte [] rcv = new byte[15728640];
                     int byteCount = tcpclnt.Client.Receive(rcv, SocketFlags.None);
                     //TODO: check if bytecount=0, remote host died, throw an exception probably
+                    //to check with a big file
                     if (byteCount > 0)
                     {
                         //check if empty sendlist
@@ -401,11 +419,11 @@ namespace ProgettoPDS
                                 if (receive()!=1)
                                     break;
                             }
-                            //TODO new view folder request, to update it
+                            //TODO: new view folder request, to update it
                                 update_viewfolder = true;
                             }
                             //l'ultimo ok lo ricevo per forza
-                            //TODO se va male mostrare qualcosa a schermo altrimenti dire che e' andato bene
+                            //TODO: se va male mostrare qualcosa a schermo altrimenti dire che e' andato bene
                             // close socket after every synch
                             //if sendlist empty just close socket
                             tcpclnt.Client.Close();
@@ -447,7 +465,7 @@ namespace ProgettoPDS
                 
             //}
         }
-        
+
         public List<string> view_folders(){
             /*
              * send view request for visualize files in the server. V:username
@@ -477,8 +495,9 @@ namespace ProgettoPDS
                 tcpclnt.Client.Close();
                 return to_view;
             }
-            catch
+            catch(Exception ex)
             {
+                Console.WriteLine(ex.StackTrace);
                 throw;
             }
         }
