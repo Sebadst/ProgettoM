@@ -8,8 +8,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using MySql.Data.MySqlClient;
-
-namespace serverProgMal
+using System.Security.Cryptography;
+namespace ServerPDS
 {
     class Register
     {
@@ -19,7 +19,7 @@ namespace serverProgMal
         private Socket s;
         Thread t;
         DBConnect db;
-        
+
         public Register(Socket s, string username, string password)
         {
             this.s = s;
@@ -31,14 +31,24 @@ namespace serverProgMal
             db = new DBConnect();
             t.Start();
         }
-
+        //penso che vada bene sha1 per questo progetto..altrimenti bcrypt o roba del genere ma diventa lento
+        public static string HashPassword(string password)
+        {
+            var provider = new SHA1CryptoServiceProvider();
+            var encoding = new UnicodeEncoding();
+            var encrypted_pwd= provider.ComputeHash(encoding.GetBytes(password));
+            //converto in questo modo per ottenere esadecimali (sha1dovrebbe tornare esamedicali) con -
+            string delimitedHexHash = BitConverter.ToString(encrypted_pwd);
+            string result = delimitedHexHash.Replace("-", "");
+            return result;
+        }
         private void action()
         {
             string query = "select count(*) from utenti where username = " + "'" + username + "'";
-            if(db.Count(query) <= 0)
+            if (db.Count(query) <= 0)
             {
 
-                query = "insert into utenti(uid, username, password) values(" + 0 + "," + "'" + username + "'" + "," + "'" + password + "'" + ")";
+                query = "insert into utenti(username, password,folder) values('" + username + "'" + "," + "'" + HashPassword(password) + "'" + ","+"'" + " " +"'" +")";
                 db.Insert(query);
                 byte[] msg = Encoding.ASCII.GetBytes("OK");
                 s.Send(msg);

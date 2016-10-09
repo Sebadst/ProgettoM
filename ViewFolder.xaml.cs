@@ -27,6 +27,7 @@ namespace ProgettoPDS
     {
         Client client;
         string path_to_synch;
+        bool path_too_long = false;
         public ViewFolder(Client client,string path)
         {
             /*
@@ -192,6 +193,7 @@ namespace ProgettoPDS
                 worker.RunWorkerCompleted += worker_RunWorkerCompleted;
                 var arg = new arguments() { path = path_to_synch };
                 worker.RunWorkerAsync(arg);
+                
             }
             catch (Exception ex)
             {
@@ -203,6 +205,7 @@ namespace ProgettoPDS
         {
             try
             {
+                this.path_too_long = false;
                 var interval = TimeSpan.FromMinutes(MyGlobalClient.minutes_for_synch);
                 Thread.Sleep(interval);
                 int result = 0; // used for the worker result
@@ -211,6 +214,11 @@ namespace ProgettoPDS
                 client.connect_to_server();
                 client.synchronize(arg.path);
                 e.Result = result;
+            }
+            catch (PathTooLongException ex)
+            {
+                e.Result = -1;
+                this.path_too_long = true;
             }
             catch (Exception ex)
             {
@@ -222,6 +230,7 @@ namespace ProgettoPDS
         {
             if (e.UserState == null)
             {
+                message.Content = "";
                 pbar.Visibility = Visibility.Visible;
                 pbar.IsIndeterminate = true;   
             }
@@ -235,11 +244,18 @@ namespace ProgettoPDS
             pbar.Visibility = Visibility.Hidden;
             if ((int)e.Result != -1)
             {
-                message.Content = "";
+                message.Content = "Sincronizzazione ok.";
             }
             else
             {
-                message.Content = "Errore di connessione al server durante la sincronizzazione";
+                if(path_too_long)
+                {
+                    message.Content = "Sincronizzazione ok. Alcuni file avevano un percorso troppo lungo e non sono stati trasferiti";
+                }
+                else
+                {
+                    message.Content = "Errore di connessione al server durante la sincronizzazione";
+                }
             }
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
@@ -248,6 +264,7 @@ namespace ProgettoPDS
             worker.RunWorkerCompleted += worker_RunWorkerCompleted;
             var arg = new arguments() { path = path_to_synch };
             worker.RunWorkerAsync(arg);
+            
         }
 
 

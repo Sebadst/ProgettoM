@@ -11,6 +11,8 @@ using Newtonsoft.Json;
 using System.Windows;
 namespace ProgettoPDS
 {
+    //TODO: also when we do login and have to show the viewfolder do it asynch because if there are many files
+    //it may take a lot
     public class Client
         //R. signup
         //L. login
@@ -25,8 +27,7 @@ namespace ProgettoPDS
         private string username;
         private string password;
         private Dictionary<string, string> file_hash = new Dictionary<string, string>();
-        bool update_viewfolder = false;
-      
+        bool path_too_long = false;
         public Client(string username, string password){
             this.ipAddress = "192.168.1.98";
             this.port = 11000;
@@ -220,7 +221,8 @@ namespace ProgettoPDS
                     else
                     {
                         Console.WriteLine("Path too long");
-                        //TODO: write something in the user interface also
+                        this.path_too_long = true;
+                        
                     }
                 }
             }
@@ -305,14 +307,61 @@ namespace ProgettoPDS
                 fStream.Close();
                 Console.WriteLine("File Ricevuto");
             }
-            
-            catch (System.IO.PathTooLongException ex)
-            {
-                Console.WriteLine("too long filename, it will not uploaded");
-                throw; // "too long filename, it will not uploaded";
-            }
+       
             catch (Exception ex)
             {
+                throw;
+            }
+        }
+        
+        //change funcgtion name
+        public string recv_file_json()
+        {
+            try
+            {
+                var buff = new byte[1024];
+                int bytesRead;
+                bytesRead = tcpclnt.Client.Receive(buff);
+                string check = (string)Encoding.UTF8.GetString(buff).Clone();
+                if (String.Compare(check.Substring(0, 3), "END") == 0)
+                    return check;
+                else
+                {
+                    string cmdFileSize = Encoding.ASCII.GetString(buff, 0, bytesRead);
+                    int length = Convert.ToInt32(cmdFileSize);
+                    //now receive the list
+                    byte[] rcv = new byte[length];
+                    byte[] credentials = Encoding.UTF8.GetBytes("OK");
+                    tcpclnt.Client.Send(credentials, SocketFlags.None);
+                    int received = 0;
+                    int old_received = 0;
+                    string rx = "";
+                    buff = new byte[length];
+                    while (received < length)
+                    {
+                        var buffer = new byte[length];
+
+                        bytesRead = tcpclnt.Client.Receive(buffer);
+                        old_received = received;
+                        received += bytesRead;
+                        if (received >= length)
+                        {
+                            bytesRead = bytesRead - (received - length);
+                        }
+                        System.Buffer.BlockCopy(buffer, 0, buff, old_received, bytesRead);
+
+                        //wrap_write_file(fstream);//in which i should write the fstream part..
+                        // string str = (string)Encoding.UTF8.GetString(buffer).Clone();
+                        //rx += str;
+                        Console.WriteLine("ricevuti: " + bytesRead + " qualcosa XD");
+                    }
+                    rx = (string)Encoding.UTF8.GetString(buff).Clone();
+                    return rx;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Errore in recv_file_json");
                 throw;
             }
         }
@@ -391,21 +440,15 @@ namespace ProgettoPDS
                     string path1 = @"C:\";
                     string dir = path1 + path;
                     //create file
+                    this.path_too_long = false;
                     browse_folder_json(dir);
                     string json = JsonConvert.SerializeObject(file_hash);
                     credentials = Encoding.UTF8.GetBytes(json);
+                    //TODO: (for server) put in the server the recv_json for this send
                     tcpclnt.Client.Send(credentials, SocketFlags.None);
-                    //wrap_recv_file();
-                    //TODO: same problem of the server, 15 MB maybe not enough
-                    byte [] rcv = new byte[15728640];
-                    int byteCount = tcpclnt.Client.Receive(rcv, SocketFlags.None);
-                    //TODO: check if bytecount=0, remote host died, throw an exception probably
-                    //to check with a big file
-                    if (byteCount > 0)
-                    {
-                        //check if empty sendlist
-                        string rx = (string)Encoding.UTF8.GetString(rcv).Clone();
-                        if (String.Compare(rx.Substring(0, 3), "END") != 0)
+                    //check if empty sendlist
+                    string rx=recv_file_json();
+                    if (String.Compare(rx.Substring(0, 3), "END") != 0)
                         {
                            List<string> to_send = JsonConvert.DeserializeObject<List<string>>(rx);
                            //send the new requested files
@@ -419,23 +462,12 @@ namespace ProgettoPDS
                                 if (receive()!=1)
                                     break;
                             }
-                            //TODO: new view folder request, to update it
-                                update_viewfolder = true;
-                            }
-                            //l'ultimo ok lo ricevo per forza
-                            //TODO: se va male mostrare qualcosa a schermo altrimenti dire che e' andato bene
+
+                        }
                             // close socket after every synch
                             //if sendlist empty just close socket
                             tcpclnt.Client.Close();
-                        }
-                        else
-                        {
-                            Console.WriteLine("Something wrong. remote host died");
-                        }
                     }
-                //TODO: change it, this way is not good if some files less.
-                //if (update_viewfolder == true)
-                //{
                 connect_to_server();
                 List<string> items = new List<string>();
                 items = view_folders();
@@ -456,6 +488,10 @@ namespace ProgettoPDS
         // Use owner here - it must be used on the UI thread as well..
         //ShowMyWindow(owner);
     }));
+                if (this.path_too_long)
+                {
+                     throw new PathTooLongException();
+                }
             }
             catch (Exception e)
             {
@@ -481,15 +517,7 @@ namespace ProgettoPDS
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
                 //receive the list of folders, and the list of files in json. show them
                 //receive the size before to prepare a coherent buffer
-                var buffer = new byte[1024];
-                int bytesRead;
-                bytesRead = tcpclnt.Client.Receive(buffer);
-                string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                int length = Convert.ToInt32(cmdFileSize);
-                //now receive the list
-                byte[] rcv = new byte[length];
-                int byteCount = tcpclnt.Client.Receive(rcv, SocketFlags.None);
-                string rx = (string)Encoding.UTF8.GetString(rcv).Clone();
+                string rx = recv_file_json();
                 List<string> to_view = JsonConvert.DeserializeObject<List<string>>(rx);
                 // close socket after every synch
                 tcpclnt.Client.Close();
@@ -551,7 +579,7 @@ namespace ProgettoPDS
                 throw;
             }
         }
-        //TODO: CHECK IF I NEED THIS OR IF I CAN JUST REMOVE IT
+        //this would be the version with task in place of backgroundoworker
         /*
         //we will call this periodic method after we checked we already have something synchronized
         public async Task periodicSynchronization(TimeSpan dueTime, 
