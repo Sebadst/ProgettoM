@@ -28,6 +28,7 @@ namespace ProgettoPDS
         Client client;
         string path_to_synch;
         bool path_too_long = false;
+        List<string> items = new List<string>();
         public ViewFolder(Client client,string path)
         {
             /*
@@ -38,16 +39,11 @@ namespace ProgettoPDS
                 InitializeComponent();
                 path_to_synch = path;
                 this.client = client;
-                List<string> items = new List<string>();
                 client.connect_to_server();
-                items = client.view_folders();
-                create_tree(items, this);
-                //here I will call the periodic method
-                var dueTime = TimeSpan.FromMinutes(1);
-                var interval = TimeSpan.FromMinutes(1);
-                pbar.IsIndeterminate = false;
-                pbar.Visibility = Visibility.Hidden;
-                periodicSynchronization(dueTime, interval, CancellationToken.None);
+                //to do in asynch way
+                //this.items = client.view_folders();
+                first_synch();
+                
             }
             catch (Exception ex)
             {
@@ -56,6 +52,48 @@ namespace ProgettoPDS
             
         }
 
+        public void first_synch()
+        {
+            //asynchronous logic
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.WorkerReportsProgress = true;
+            worker.DoWork += firstsynch_DoWork;
+            worker.ProgressChanged += worker_ProgressChanged;
+            worker.RunWorkerCompleted += firstsynch_RunWorkerCompleted;
+            worker.RunWorkerAsync();
+        }
+
+        void firstsynch_DoWork(object sender, DoWorkEventArgs e)
+        {
+            try
+            {
+                int result = 0; // used for the worker result
+                (sender as BackgroundWorker).ReportProgress(0); //start pbar
+                items = client.view_folders();
+                e.Result = result;
+            }
+            catch
+            {
+                e.Result = -1;
+            }
+        }
+        void firstsynch_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if ((int)e.Result != -1)
+            {
+                create_tree(this.items, this); //TODO: change it in case, now that i put items as element of the window it makes no sense to pass this twice
+                //here I will call the periodic method
+                var dueTime = TimeSpan.FromMinutes(1);
+                var interval = TimeSpan.FromMinutes(1);
+                pbar.IsIndeterminate = false;
+                pbar.Visibility = Visibility.Hidden;
+                periodicSynchronization(dueTime, interval, CancellationToken.None);
+            }
+            else
+            {
+                message.Content="errore di connessione col server. per favore chiudere e riaprire l'app";
+            }
+        }
        
         public void create_tree(List<string>items,ViewFolder v){
             /*
