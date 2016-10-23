@@ -185,14 +185,24 @@ namespace ServerPDS
                 //Create a data reader and Execute the command
                 MySqlDataReader dataReader = cmd.ExecuteReader();
 
-                //Read the data and store them in the list
-                while (dataReader.Read())
-                {
-                    list[0].Add(dataReader["username"] + "");
-                    list[1].Add(dataReader["password"] + "");
-                    list[2].Add(dataReader["folder"] + "");
-                }
+                //TODO: change it absolutely, bad function. it is a tmp version
 
+                //Read the data and store them in the list
+                
+                    while (dataReader.Read())
+                    {
+                        try
+                        {
+                            list[0].Add(dataReader["username"] + "");
+                            list[1].Add(dataReader["password"] + "");
+                            list[2].Add(dataReader["folder"] + "");
+                        }
+                        catch
+                        {
+                            list[0].Add(dataReader["data"] + "");
+                        }
+                    }
+                
                 //close Data Reader
                 dataReader.Close();
 

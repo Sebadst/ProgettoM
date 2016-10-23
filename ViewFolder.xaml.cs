@@ -22,7 +22,6 @@ namespace ProgettoPDS
     /// <summary>
     /// Logica di interazione per ViewFolder.xaml
     /// </summary>
-    
     public partial class ViewFolder : Window
     {
         Client client;
@@ -81,7 +80,7 @@ namespace ProgettoPDS
         {
             if ((int)e.Result != -1)
             {
-                create_tree(this.items, this); //TODO: change it in case, now that i put items as element of the window it makes no sense to pass this twice
+                create_tree(this.items, this); //it makes sense because i call the method also somewhere else (in client class for ex)
                 //here I will call the periodic method
                 var dueTime = TimeSpan.FromMinutes(1);
                 var interval = TimeSpan.FromMinutes(1);
@@ -172,11 +171,13 @@ namespace ProgettoPDS
                         {
                             v.folders.Items.Add(root);
                             root = null;
+                            v.folders.Items.Add(other_data);
                         }
                         //first time will not do it, other times yes
+                        
                         if (other_root != null)
                         {
-                            v.folders.Items.Add(other_data);
+                            
                             v.folders.Items.Add(other_root);
                         }
                         other_root = new MenuItem() { Title = path };
@@ -195,6 +196,21 @@ namespace ProgettoPDS
             v.folders.Items.Add(other_root);
         }
 
+        private void choose_folder_Click(object sender, RoutedEventArgs e)
+        {
+            /*
+              * called when choose folder is clicked
+              */
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+            // Get the selected file name and display in a TextBox 
+            if (result == System.Windows.Forms.DialogResult.OK)
+            {
+                // Open document 
+                string filename = dialog.SelectedPath;
+                path.Text = filename;
+            }
+        }
         private void download_Click(object sender, RoutedEventArgs e)
         {
             /*
@@ -202,18 +218,34 @@ namespace ProgettoPDS
              */
             string[] format = { "yyyyMMdd-HHmm" };
             DateTime date;
-            try
+            String f;
+            if (this.path.Text!= "") 
+                try
+                {
+                    message.Content = "";
+                    try
+                    {
+                        f = (folders.SelectedItem as MenuItem).Title;
+                    }
+                    catch
+                    {
+                        message.Content = "Scegli qualcosa da scaricare prima";
+                        return;
+                    }
+                    if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
+                                    DateTimeStyles.None, out date))
+                        return;
+                    client.connect_to_server();
+                    client.download_file(f,this.path.Text);
+                    message.Content = "File scaricato correttamente";
+                }
+                catch (Exception ex)
+                {
+                    message.Content = "Errore di connessione al server nel download";
+                }
+            else
             {
-                String f = (folders.SelectedItem as MenuItem).Title;
-                if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
-                                DateTimeStyles.None, out date))
-                    return;
-                client.connect_to_server();
-                client.download_file(f);
-            }
-            catch (Exception ex)
-            {
-                message.Content = "Errore di connessione al server nel download";
+                message.Content = "Scegli in quale cartella vuoi scaricare il file selezionato";
             }
         }
 

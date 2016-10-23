@@ -14,8 +14,11 @@
             </StackPanel.Resources>
             <TextBlock FontWeight="Bold" Margin="0,0,0,10">ListBox selection</TextBlock>
             <Button Name="download_button" Click="download_Click">Download selected</Button>
+            <Button x:Name="choose_folder" Content="Cartella di download" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="148,160,0,0" Click="choose_folder_Click"/>
+            <TextBlock x:Name="path" Margin="119,80,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="20" Width="302"/>
+
             <ProgressBar HorizontalAlignment="Center" Height="24" Margin="30,164,30,0" VerticalAlignment="Top" Width="108" IsIndeterminate="True" x:Name="pbar"/>
-            <Label x:Name="message" HorizontalAlignment="Center" Margin="30,164,30,0" VerticalAlignment="Center" Width="251" Height="29" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595"/>
+            <Label x:Name="message" HorizontalAlignment="Center" Margin="30,14,30,0" VerticalAlignment="Center" Width="251" Height="29" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595"/>
 
         </StackPanel>
         <TreeView Name="folders" x:FieldModifier="public">

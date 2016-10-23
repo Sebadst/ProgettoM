@@ -11,8 +11,9 @@ using Newtonsoft.Json;
 using System.Windows;
 namespace ProgettoPDS
 {
-    //TODO: also when we do login and have to show the viewfolder do it asynch because if there are many files
-    //it may take a lot
+    
+    //TODO: check that synch is ACID
+
     public class Client
         //R. signup
         //L. login
@@ -24,7 +25,7 @@ namespace ProgettoPDS
         private TcpClient tcpclnt;
         private string ipAddress;
         private int port;
-        private string username;
+        public string username;
         private string password;
         private Dictionary<string, string> file_hash = new Dictionary<string, string>();
         bool path_too_long = false;
@@ -271,7 +272,7 @@ namespace ProgettoPDS
             }
         }
 
-        public void wrap_recv_zipfile(string f)
+        public void wrap_recv_zipfile(string f,string down_folder)
         {
             /*
              * wrap the receive of a file. used to download a selected folder
@@ -280,7 +281,7 @@ namespace ProgettoPDS
             {
                 
                 f = f.Substring(f.LastIndexOf("\\"), f.Length - f.LastIndexOf("\\"));
-                FileStream fStream = new FileStream(MyGlobalClient.downloadDirectory + f + ".rar", FileMode.Create);
+                FileStream fStream = new FileStream(down_folder+"\\" + f + ".rar", FileMode.Create);
                 // read the file in chunks of 1KB
                 var buffer = new byte[1024];
                 int bytesRead;
@@ -366,7 +367,7 @@ namespace ProgettoPDS
             }
         }
 
-        public void wrap_recv_file(string f)
+        public void wrap_recv_file(string f,string down_folder)
         {
             /*
              * wrap the receive of a file
@@ -374,7 +375,7 @@ namespace ProgettoPDS
             try
             {
                 f = Path.GetFileName(f);
-                f = Path.Combine(MyGlobalClient.downloadDirectory, f);
+                f = Path.Combine(down_folder, f);
                 FileStream fStream = new FileStream(f, FileMode.Create);
                 // read the file in chunks of 1KB
                 var buffer = new byte[1024];
@@ -549,7 +550,7 @@ namespace ProgettoPDS
             return size;
         }
 
-        public void download_file(String f)
+        public void download_file(String f,String download_folder)
         {
             /*
              * send download request. D:filename
@@ -566,11 +567,11 @@ namespace ProgettoPDS
                 if (ext == String.Empty)
                 {
                     //It's a directory
-                    wrap_recv_zipfile(f);
+                    wrap_recv_zipfile(f,download_folder);
                 }
                 else
                 {
-                    wrap_recv_file(f);
+                    wrap_recv_file(f,download_folder);
                 }
                 tcpclnt.Client.Close();
             }

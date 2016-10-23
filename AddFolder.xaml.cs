@@ -49,8 +49,25 @@ namespace ProgettoPDS
                 path.Text = filename;
             }
         }
-
-        
+        private void browse_folder_length(string filename)
+        {
+            /*
+             * browse list of files with md5. called in synchronize 
+             */
+            
+            
+                DirectoryInfo d = new DirectoryInfo(filename);
+                foreach (var dir in d.GetDirectories())
+                    browse_folder_length(dir.FullName);
+                foreach (var file in d.GetFiles())
+                {
+                    if (file.FullName.Length + MyGlobalClient.rootFolderServer.Length + client.username.Length > 255)
+                    {
+                        throw new PathTooLongException();
+                    }
+                }
+            
+        }
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
             /*
@@ -63,6 +80,16 @@ namespace ProgettoPDS
                 //start pbar
                 (sender as BackgroundWorker).ReportProgress(0); 
                 //put the operation here
+                //check if there is something too long
+                try
+                {
+                    browse_folder_length(arg.path);
+                }
+                catch
+                {
+                    e.Result = -2;
+                    return;
+                }
                 string zipPath = System.IO.Path.Combine(MyGlobalClient.zipDirectory,"result.zip");
                 ZipFile.CreateFromDirectory(arg.path, zipPath);
                 //send the zip file
@@ -105,7 +132,10 @@ namespace ProgettoPDS
                 {
                     pbar.Visibility = Visibility.Hidden;
                     pbar.IsIndeterminate = false;
-                    message.Content = "Errore, server non raggiungibile";
+                    if ((int)e.Result == -1)
+                        message.Content = "Errore, server non raggiungibile";
+                    else if ((int)e.Result == -2)
+                        message.Content = "Alcuni files hanno un percorso troppo lungo, cambiare e riprovare";
                 }
             }
             catch (Exception ex)
@@ -149,9 +179,7 @@ namespace ProgettoPDS
                     
                 }
             }
-            // TODO: understand if I need this or if i can delete it.
-            // TODO: Add a CancellationTokenSource and supply the token here instead of None.
-            //client.periodicSynchronization(dueTime,interval, CancellationToken.None,path.Text);    
+   
         }
     }
 }
