@@ -17,11 +17,18 @@ using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+
 namespace ProgettoPDS
 {
     /// <summary>
     /// Logica di interazione per ViewFolder.xaml
     /// </summary>
+    /// 
+    /// //TODO: give the possibility to choose how many minutes for next synch, more difficult
+    /// //TODO: add visualization of files extensions
     public partial class ViewFolder : Window
     {
         Client client;
@@ -69,6 +76,9 @@ namespace ProgettoPDS
                 int result = 0; // used for the worker result
                 (sender as BackgroundWorker).ReportProgress(0); //start pbar
                 items = client.view_folders();
+
+
+
                 e.Result = result;
             }
             catch
@@ -107,8 +117,8 @@ namespace ProgettoPDS
             MenuItem data = new MenuItem() { Title = items[0] };
             MenuItem other_data = null;
             v.folders.Items.Add(data);
-            MenuItem root = new MenuItem() { Title = System.IO.Path.GetDirectoryName(items[1]) };
-            root.Items.Add(new MenuItem() { Title = items[1]});
+            MenuItem root = new MenuItem() { Title = System.IO.Path.GetDirectoryName(items[1]), Icon = this.getIcon(System.IO.Path.GetDirectoryName(items[1]), true, true) };
+            root.Items.Add(new MenuItem() { Title = items[1], Icon = this.getIcon(items[1], true, false) });
             d.Add(System.IO.Path.GetDirectoryName(items[1]), root);
             string previous_path = System.IO.Path.GetDirectoryName(items[1]);
             paths.Add(System.IO.Path.GetDirectoryName(items[1]));
@@ -119,7 +129,7 @@ namespace ProgettoPDS
                               DateTimeStyles.None, out date))
                 {
                     Console.WriteLine(filename);
-                    other_data = new MenuItem() { Title = filename };                   
+                    other_data = new MenuItem() { Title = filename ,  Icon = this.getIcon(filename,true,false) };                   
                     continue;
                 }
                 //take the path
@@ -129,9 +139,9 @@ namespace ProgettoPDS
                 {
                     //add as subfolder or subfile
                     //the folder
-                    MenuItem childitem1 = new MenuItem() { Title = path };
+                    MenuItem childitem1 = new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true)};
                     //the file
-                    childitem1.Items.Add(new MenuItem() { Title = filename });
+                    childitem1.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
                     d[previous_path].Items.Add(childitem1);
                     paths.Add(path);
                     previous_path = path;
@@ -141,7 +151,7 @@ namespace ProgettoPDS
                 else if (path == previous_path)
                 {
                     //same subfolder
-                    d[path].Items.Add(new MenuItem() { Title = filename });
+                    d[path].Items.Add(new MenuItem() { Title = filename,   Icon = this.getIcon(filename,true,false) });
                 }
                 //do another folder
                 else
@@ -153,9 +163,9 @@ namespace ProgettoPDS
                     {                    
                         if(path.Contains(s)){
                             //the folder
-                            MenuItem childItem=new MenuItem() { Title = path };
+                            MenuItem childItem=new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true)};
                             //the file
-                            childItem.Items.Add(new MenuItem() { Title = filename });
+                            childItem.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
                             d[s].Items.Add(childItem);
                             previous_path=path;
                             d.Add(path,childItem);
@@ -180,8 +190,8 @@ namespace ProgettoPDS
                             
                             v.folders.Items.Add(other_root);
                         }
-                        other_root = new MenuItem() { Title = path };
-                        other_root.Items.Add(new MenuItem() { Title = filename });
+                        other_root = new MenuItem() { Title = path, Icon = this.getIcon(path, true, true) };
+                        other_root.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
                         d.Add(path, other_root);
                         previous_path = path;
                         paths.Add(path);
@@ -192,8 +202,9 @@ namespace ProgettoPDS
             if (root != null)
                 v.folders.Items.Add(root);
             //for the last time
-            v.folders.Items.Add(other_data);
+            v.folders.Items.Add(other_data); 
             v.folders.Items.Add(other_root);
+            
         }
 
         private void choose_folder_Click(object sender, RoutedEventArgs e)
@@ -211,6 +222,7 @@ namespace ProgettoPDS
                 path.Text = filename;
             }
         }
+
         private void download_Click(object sender, RoutedEventArgs e)
         {
             /*
@@ -219,7 +231,7 @@ namespace ProgettoPDS
             string[] format = { "yyyyMMdd-HHmm" };
             DateTime date;
             String f;
-            if (this.path.Text!= "") 
+            if (this.path.Text!= "")
                 try
                 {
                     message.Content = "";
@@ -235,9 +247,16 @@ namespace ProgettoPDS
                     if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
                                     DateTimeStyles.None, out date))
                         return;
-                    client.connect_to_server();
-                    client.download_file(f,this.path.Text);
-                    message.Content = "File scaricato correttamente";
+                    if (pbar.Visibility == Visibility.Visible)
+                    {
+                        client.connect_to_server();
+                        client.download_file(f, this.path.Text);
+                        message.Content = "File scaricato correttamente";//possibility of file not present : I will print just errore di connessione
+                    }
+                    else
+                    {
+                        message.Content = "Sincronizzazione in corso. Attendere la fine e riprovare il download";
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -337,6 +356,81 @@ namespace ProgettoPDS
             
         }
 
+        public ImageSource getIcon(string path, bool smallIcon, bool isDirectory)
+        {
+            // SHGFI_USEFILEATTRIBUTES takes the file name and attributes into account if it doesn't exist
+            uint flags = SHGFI_ICON | SHGFI_USEFILEATTRIBUTES;
+            if (smallIcon)
+                flags |= SHGFI_SMALLICON;
+
+            uint attributes = FILE_ATTRIBUTE_NORMAL;
+            if (isDirectory)
+                attributes |= FILE_ATTRIBUTE_DIRECTORY;
+
+            SHFILEINFO shfi;
+            if (0 != SHGetFileInfo(
+                        path,
+                        attributes,
+                        out shfi,
+                        (uint)Marshal.SizeOf(typeof(SHFILEINFO)),
+                        flags))
+            {
+                return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                            shfi.hIcon,
+                            Int32Rect.Empty,
+                            BitmapSizeOptions.FromEmptyOptions());
+            }
+            return null;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SHFILEINFO
+        {
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
+        }
+
+        [DllImport("shell32")]
+        private static extern int SHGetFileInfo(string pszPath, uint dwFileAttributes, out SHFILEINFO psfi, uint cbFileInfo, uint flags);
+
+        private const uint FILE_ATTRIBUTE_READONLY = 0x00000001;
+        private const uint FILE_ATTRIBUTE_HIDDEN = 0x00000002;
+        private const uint FILE_ATTRIBUTE_SYSTEM = 0x00000004;
+        private const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+        private const uint FILE_ATTRIBUTE_ARCHIVE = 0x00000020;
+        private const uint FILE_ATTRIBUTE_DEVICE = 0x00000040;
+        private const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
+        private const uint FILE_ATTRIBUTE_TEMPORARY = 0x00000100;
+        private const uint FILE_ATTRIBUTE_SPARSE_FILE = 0x00000200;
+        private const uint FILE_ATTRIBUTE_REPARSE_POINT = 0x00000400;
+        private const uint FILE_ATTRIBUTE_COMPRESSED = 0x00000800;
+        private const uint FILE_ATTRIBUTE_OFFLINE = 0x00001000;
+        private const uint FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x00002000;
+        private const uint FILE_ATTRIBUTE_ENCRYPTED = 0x00004000;
+        private const uint FILE_ATTRIBUTE_VIRTUAL = 0x00010000;
+
+        private const uint SHGFI_ICON = 0x000000100;     // get icon
+        private const uint SHGFI_DISPLAYNAME = 0x000000200;     // get display name
+        private const uint SHGFI_TYPENAME = 0x000000400;     // get type name
+        private const uint SHGFI_ATTRIBUTES = 0x000000800;     // get attributes
+        private const uint SHGFI_ICONLOCATION = 0x000001000;     // get icon location
+        private const uint SHGFI_EXETYPE = 0x000002000;     // return exe type
+        private const uint SHGFI_SYSICONINDEX = 0x000004000;     // get system icon index
+        private const uint SHGFI_LINKOVERLAY = 0x000008000;     // put a link overlay on icon
+        private const uint SHGFI_SELECTED = 0x000010000;     // show icon in selected state
+        private const uint SHGFI_ATTR_SPECIFIED = 0x000020000;     // get only specified attributes
+        private const uint SHGFI_LARGEICON = 0x000000000;     // get large icon
+        private const uint SHGFI_SMALLICON = 0x000000001;     // get small icon
+        private const uint SHGFI_OPENICON = 0x000000002;     // get open icon
+        private const uint SHGFI_SHELLICONSIZE = 0x000000004;     // get shell size icon
+        private const uint SHGFI_PIDL = 0x000000008;     // pszPath is a pidl
+        private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;     // use passed dwFileAttribute
+
 
         private static int CompareByLength(string x, string y)
         {
@@ -396,7 +490,9 @@ namespace ProgettoPDS
         }
 
         public string Title { get; set; }
-
+        public ImageSource Icon { get; set; }
+        
+        
         public ObservableCollection<MenuItem> Items { get; set; }
     }
     public class arguments

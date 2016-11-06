@@ -20,12 +20,13 @@ namespace ProgettoPDS
     /// </summary>
     public partial class Signup_window : Window
     {
+        
         public Signup_window()
         {
             InitializeComponent();
         }
 
-        private void ButtonClicked(object sender, RoutedEventArgs e)
+        private void Signup(object sender, RoutedEventArgs e)
         {
             /*
              * called when signup button is clicked
@@ -59,6 +60,12 @@ namespace ProgettoPDS
                     message.Content = "Nessuna risposta dal server";
                 }
             }
+        }
+        private void Back(object sender, RoutedEventArgs e)
+        {
+            MainWindow m = new MainWindow();
+            m.Show();
+            this.Close();
         }
     }       
 }

@@ -30,7 +30,7 @@ namespace ProgettoPDS
         private Dictionary<string, string> file_hash = new Dictionary<string, string>();
         bool path_too_long = false;
         public Client(string username, string password){
-            this.ipAddress = "192.168.1.98";
+            this.ipAddress = "192.168.1.100";
             this.port = 11000;
             this.username = username;
             this.password = password;
@@ -445,7 +445,6 @@ namespace ProgettoPDS
                     browse_folder_json(dir);
                     string json = JsonConvert.SerializeObject(file_hash);
                     credentials = Encoding.UTF8.GetBytes(json);
-                    //TODO: (for server) put in the server the recv_json for this send
                     tcpclnt.Client.Send(credentials, SocketFlags.None);
                     //check if empty sendlist
                     string rx=recv_file_json();

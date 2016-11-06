@@ -3,6 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <Style x:Key="MainTemplate">
+            <Setter Property="Button.Height" Value="36"></Setter>
+            <Setter Property="Button.Width" Value="120"></Setter>
+            <Setter Property="TextBox.Height" Value="30"></Setter>
+            <Setter Property="TextBox.Width" Value="120"></Setter>
+            <Setter Property="PasswordBox.Height" Value="30"></Setter>
+            <Setter Property="PasswordBox.Width" Value="120"></Setter>
+        </Style>
     </Application.Resources>
 </Application>

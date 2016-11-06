@@ -114,6 +114,7 @@ namespace ProgettoPDS
             {
                 pbar.Visibility = Visibility.Visible;
                 pbar.IsIndeterminate = true;
+                message.Content = "Synchronization in progress, please wait";
             }
          }
         

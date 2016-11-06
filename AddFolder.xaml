@@ -4,13 +4,21 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="600">
+             Height="381" Width="600" MinHeight="350" MinWidth="600" Background="#FF745959" Title="MyApp   Add a folder">
     <Grid>
-        <Button x:Name="choose_folder" Content="Choose Folder" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="148,160,0,0" Click="choose_folder_Click"/>
-        <Button x:Name="load_folder" Content="Load Folder" HorizontalAlignment="Left" Margin="148,242,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="-1.15,1.19" Click="load_folder_Click"/>
-        <TextBlock x:Name="path" HorizontalAlignment="Left" Margin="269,160,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="20" Width="302"/>
-        <Label x:Name="message" HorizontalAlignment="Center" Margin="171,137,10,153" VerticalAlignment="Center" Width="336" Height="29" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595"/>
-        <ProgressBar HorizontalAlignment="Center" Height="24" Margin="30,264,30,0" VerticalAlignment="Top" Width="108" IsIndeterminate="True" x:Name="pbar"/>
+
+        <Grid.Background>
+            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                <GradientStop Color="Black" Offset="0"/>
+                <GradientStop Color="#FF67A2DC" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+        <Label HorizontalAlignment="Center" FontFamily="Felix Titling" FontSize="20" Margin="94,48,126,245" VerticalAlignment="Center" Width="372" Height="57" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595" Content="Please choose a folder to add" />
+        <Button Style="{StaticResource MainTemplate}" x:Name="choose_folder" Content="Choose Folder" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="148,160,0,0" Click="choose_folder_Click"/>
+        <Button Style="{StaticResource MainTemplate}" x:Name="load_folder" Content="Load Folder" HorizontalAlignment="Left" Margin="148,242,0,0" VerticalAlignment="Top" RenderTransformOrigin="-1.15,1.19" Click="load_folder_Click"/>
+        <TextBlock x:Name="path" HorizontalAlignment="Left" Margin="306,160,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="30" Width="265" Foreground="#FFB69595" />
+        <Label x:Name="message" HorizontalAlignment="Center" Margin="306,204,40,118" VerticalAlignment="Center" Width="246" Height="28" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595"/>
+        <ProgressBar HorizontalAlignment="Center" Height="24" Margin="332,248,152,0" VerticalAlignment="Top" Width="108" IsIndeterminate="True" x:Name="pbar"/>
 
     </Grid>
 </Window>
