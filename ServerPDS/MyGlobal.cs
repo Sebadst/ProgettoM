@@ -9,5 +9,6 @@ namespace ServerPDS
     public static class MyGlobal
     {
         public static string rootFolder = "C:\\RootFolderUseres";
+        public static int num_versions = 3;
     }
 }

@@ -70,6 +70,7 @@ namespace ServerPDS
             }
             Console.WriteLine("Risposta al comando ask inviata");
         }
+
         public void view_request()
         {
             /*
@@ -77,49 +78,26 @@ namespace ServerPDS
              */
             //recover the root of user into server
             string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-            //TODO: fare con un for, questo e tutto il resto
-            string pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
             string json = null;
-
-            if (Directory.Exists(pathIntoServer))
+            for (int i = 1; i <= MyGlobal.num_versions; i++)
             {
-                //start constructing the json
-                view_list.Clear();
-                string query = "select data from cartelle where username='" + username + "' and versione ='1'";
+                string pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, i.ToString());        
+                if (Directory.Exists(pathIntoServer))
+                {
+                    if (i == 1)
+                    {
+                        //start constructing the json
+                        view_list.Clear();
+                    }
+                    string query = "select data from cartelle where username='" + username + "' and versione ='"+i+"'";
 
-                string date = db.Select(query).ElementAt(0).First();
-                string formatted_date =   date.Substring(6, 4) + date.Substring(3, 2) +date.Substring(0, 2) +"-" + date.Substring(11, 2) + date.Substring(14, 2);
+                    string date = db.Select(query).ElementAt(0).First();
+                    string formatted_date = date.Substring(6, 4) + date.Substring(3, 2) + date.Substring(0, 2) + "-" + date.Substring(11, 2) + date.Substring(14, 2);
 
-                view_list.Add(formatted_date);
-                browse_folder_list_version(pathIntoServer, view_list);
+                    view_list.Add(formatted_date);
+                    browse_folder_list_version(pathIntoServer, view_list);
+                }
             }
-
-            pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, "2");
-            if (Directory.Exists(pathIntoServer))
-            {
-                //continue constructing the json
-                string query = "select data from cartelle where username='" + username + "' and versione ='2'";
-
-                string date = db.Select(query).ElementAt(0).First();
-
-                string formatted_date = date.Substring(6, 4) + date.Substring(3, 2) + date.Substring(0, 2) + "-" + date.Substring(11, 2) + date.Substring(14, 2);
-                view_list.Add(formatted_date);
-                browse_folder_list_version(pathIntoServer, view_list);
-            }
-
-            pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, "3");
-            if (Directory.Exists(pathIntoServer))
-            {
-                //finish constructing the json
-                string query = "select data from cartelle where username='" + username + "' and versione ='3'";
-
-                string date = db.Select(query).ElementAt(0).First();
-                string formatted_date = date.Substring(6, 4) + date.Substring(3, 2) + date.Substring(0, 2) + "-" + date.Substring(11, 2) + date.Substring(14, 2);
-
-                view_list.Add(formatted_date);
-                browse_folder_list_version(pathIntoServer, view_list);
-            }
-
             //finally send the json
             json = JsonConvert.SerializeObject(view_list);
             byte[] credentials = Encoding.UTF8.GetBytes(json);
@@ -135,6 +113,7 @@ namespace ServerPDS
                 s.Send(credentials, SocketFlags.None);
             }
         }
+
         public void synchronize_request(string[] words)
         {
             /*
@@ -177,7 +156,6 @@ namespace ServerPDS
             }
             else
             {
-                //TODO: change it like for the others, maybe with the throw
                 byte[] msg = Encoding.ASCII.GetBytes("E. not present");
                 s.Send(msg);
             }
@@ -223,7 +201,6 @@ namespace ServerPDS
                     else if (String.Compare(cmd.Substring(0, 2), "V:") == 0)
                     {
                         view_request();
-
                         //out from the loop after V request
                         break;
                     }
@@ -231,14 +208,12 @@ namespace ServerPDS
                     else if (String.Compare(cmd.Substring(0, 2), "S:") == 0)
                     {
                         synchronize_request(words);
-
                         //out of the loop with S request
                         break;
                     }
                     else if (String.Compare(cmd.Substring(0, 2), "D:") == 0)
                     {
                         download_request(cmd);
-
                         //out of the loop with D request
                         break;
                     }
@@ -297,10 +272,9 @@ namespace ServerPDS
                 //create the first upload folder for client
                 DirectoryInfo u1 = Directory.CreateDirectory(System.IO.Path.Combine("1", pis));
                 Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(pis));
-                //store the date into the db cartelle. TODO: check if it works
+                //store the date into the db cartelle. 
                 string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
-
-                //store the date into the db cartelle. TODO: check if it works
+                //store the date into the db cartelle. 
                 query = "insert into cartelle values('1','" + username + "','" + creation_time + "')";
                 db.Insert(query);
                 //extract
@@ -400,10 +374,9 @@ SearchOption.AllDirectories))
                 //cerco la cartella
                 pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
                 pathString = pathIntoServer2;
-                //store into the db the date of 3rd folder. TODO: check if it works
+                //store into the db the date of 3rd folder. 
                 string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
-
-                //store the date into the db cartelle. TODO: check if it works
+                //store the date into the db cartelle. 
                 string query = "insert into cartelle values('3','" + username + "','" + creation_time + "')";
                 db.Insert(query);
             }
@@ -549,8 +522,6 @@ SearchOption.AllDirectories))
                     pathIntoServer = i.Item2;
                 }
                 // Read the file and display it line by line.
-                //TODO: now it should be ok with flag used in this way (without the else commented
-                //below but with the if sendlist==0) for the deleted files. check it some other times to be sure
                 if (flag == true)
                 {
                     if (sendlist.Count > 0)
@@ -569,11 +540,7 @@ SearchOption.AllDirectories))
                             s.Send(credentials, SocketFlags.None);
                         }
                     }
-                    /* //TODO: check if this breaks something. it is for deleted files
-                     if (dictionary.Count>0)
-                     {
 
-                     }*/
                     //now let's create the new folder with the copylist and the files from the sendlist
                     //create the folder
                     DirectoryInfo u1 = Directory.CreateDirectory(pathIntoServer);
@@ -649,7 +616,6 @@ SearchOption.AllDirectories))
         public void receiveFile_json()
         {
             //TODO: 15 MB should be enough for just the list of files but careful because it should be corrected probably sending the dimension and dimensioning the buffer in that way, like for the normal files
-            //TODO: fix synchronize that doesn t work yet, for instance with the eurecom folder i put in desktop-sebadst
             byte[] rcv = new byte[15728640];
             int byteCount = s.Receive(rcv, SocketFlags.None);
             string rx = (string)Encoding.UTF8.GetString(rcv).Clone();
@@ -784,12 +750,10 @@ SearchOption.AllDirectories))
         {
             //  ZIP THE FILE
             string startPath = directory;
-            //TODO: change the path
             string zipPath = MyGlobal.rootFolder + "\\" + username + ".zip";
             // string extractPath = @"C:\Users\sds\Desktop\progetto";
             ZipFile.CreateFromDirectory(startPath, zipPath);
             wrap_send_file(zipPath);
-            //TODO delete the zip from the server
             File.Delete(zipPath);
         }
 
