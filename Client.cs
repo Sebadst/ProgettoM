@@ -13,7 +13,12 @@ namespace ProgettoPDS
 {
     
     //TODO: check that synch is ACID
-
+    
+    //if download ans synch requests are sent in same moment is not a problem since they are on different 
+    //threads and each socket will receive its own data. but what happens if i send a download request and
+    //immediately a synch starts and it implies to remove that file?i guess i should either deny this or
+    //display a msg in client that says that the download has not been successful because of this reason
+    //TODO: check with giorgio if it's ok leaving it like this.
     public class Client
         //R. signup
         //L. login
@@ -281,14 +286,15 @@ namespace ProgettoPDS
             {
                 
                 f = f.Substring(f.LastIndexOf("\\"), f.Length - f.LastIndexOf("\\"));
-                FileStream fStream = new FileStream(down_folder+"\\" + f + ".rar", FileMode.Create);
-                // read the file in chunks of 1KB
+                FileStream fStream = new FileStream(down_folder+"\\" + f + ".zip", FileMode.Create);
+                // read the file in chunks of 1MB
                 var buffer = new byte[1024];
                 int bytesRead;
                 //read length and send ok
                 bytesRead = tcpclnt.Client.Receive(buffer);
                 string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                 int length = Convert.ToInt32(cmdFileSize);
+                buffer = new byte[length];
                 byte[] credentials = Encoding.UTF8.GetBytes("OK");
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
 
@@ -296,6 +302,7 @@ namespace ProgettoPDS
                 while (received < length)
                 {
                     bytesRead = tcpclnt.Client.Receive(buffer);
+                    string hello = Encoding.ASCII.GetString(buffer, 0, bytesRead);//TODO: remove it
                     received += bytesRead;
                     if (received >= length)
                     {

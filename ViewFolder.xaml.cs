@@ -27,8 +27,6 @@ namespace ProgettoPDS
     /// Logica di interazione per ViewFolder.xaml
     /// </summary>
     /// 
-    /// //TODO: give the possibility to choose how many minutes for next synch, more difficult
-    /// //TODO: add visualization of files extensions
     public partial class ViewFolder : Window
     {
         Client client;
@@ -247,7 +245,7 @@ namespace ProgettoPDS
                     if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
                                     DateTimeStyles.None, out date))
                         return;
-                    if (pbar.Visibility == Visibility.Visible)
+                    if (pbar.Visibility == Visibility.Hidden)
                     {
                         client.connect_to_server();
                         client.download_file(f, this.path.Text);
@@ -264,7 +262,7 @@ namespace ProgettoPDS
                 }
             else
             {
-                message.Content = "Scegli in quale cartella vuoi scaricare il file selezionato";
+                message.Content = "Scegli in quale cartella vuoi scaricare il file";
             }
         }
 
@@ -356,6 +354,24 @@ namespace ProgettoPDS
             
         }
 
+        private void set_interval(object sender, RoutedEventArgs e)
+        {
+            if (this.interval.Value is int && this.interval.Value>0 && this.interval.Value<301)
+            {
+                MyGlobalClient.minutes_for_synch = (int)this.interval.Value;
+                this.message.Content = "Intervallo settato";
+            }
+            else
+            {
+                this.message.Content = "Inserisci un val tra 1 e 300";
+            }
+        }
+        
+
+        //TODO: refactor this code
+        /*
+         * LOGIC TO SHOW ICONS
+         */
         public ImageSource getIcon(string path, bool smallIcon, bool isDirectory)
         {
             // SHGFI_USEFILEATTRIBUTES takes the file name and attributes into account if it doesn't exist

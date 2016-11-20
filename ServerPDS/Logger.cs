@@ -295,189 +295,95 @@ namespace ServerPDS
             }
         }
 
-        private Tuple<bool, string> check_3rd(string userFolderIntoServer, string pathIntoClient, string pathIntoServer, string pathString, bool flag)
+        private Tuple<bool, string> check_folder(string userFolderIntoServer, string pathIntoClient, string pathIntoServer, string pathString, bool flag,string version)
         {
-            browse_folder(System.IO.Path.Combine(userFolderIntoServer, "3"), dictionary);
+            browse_folder(System.IO.Path.Combine(userFolderIntoServer, version), dictionary);
             //un file "percorso(radice la directory iniziale) hash" uno per riga
             //System.IO.StreamReader myfile = new System.IO.StreamReader(filePath);
             foreach (var line in file_hash)
             {
                 string key = line.Key;
                 string value = line.Value;
-                if (dictionary.ContainsKey("3\\" + key))
+                if (dictionary.ContainsKey(version+"\\" + key))
                 {
-                    if (value == dictionary["3\\" + key])
+                    if (value == dictionary[version+"\\" + key])
                     {
                         //because the folder 3 will become the 2, so I will put 2
-                        copylist.Add("2\\" + key);
+                        if (int.Parse(version) == MyGlobal.num_versions)
+                            copylist.Add((int.Parse(version) - 1).ToString() + "\\" + key);
+                        else
+                            copylist.Add(version + "\\" + key);
                     }
                     else
                     {
                         sendlist.Add(key);
                     }
                     //i remove to do the check on files deletede afterwards
-                    dictionary.Remove("3\\" + key);
+                    dictionary.Remove(version+"\\" + key);
                 }
                 else
                 {
                     sendlist.Add(key);
                 }
             }
+            
             //if deleted files remain then count>0
             if (dictionary.Count > 0 || sendlist.Count != 0)
             {
-                flag = true;
-                //cancella la 1
-                pathIntoClient = "1";
-                //cerco la cartella
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
-                string pathIntoClient2 = "2";
-                //recupero la root dellutente nel server
-                string userFolderIntoServer2 = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-                //cerco la cartella
-                string pathIntoServer2 = System.IO.Path.Combine(userFolderIntoServer2, pathIntoClient2);
-                string pathIntoClient3 = "3";
-                //recupero la root dellutente nel server
-                string userFolderIntoServer3 = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-                //cerco la cartella
-                string pathIntoServer3 = System.IO.Path.Combine(userFolderIntoServer3, pathIntoClient3);
-                DeleteDirectory(pathIntoServer);
-                Directory.CreateDirectory(pathIntoServer);
-                //la 2 diventa 1
-                // i do a copy in place of a move
-                string[] files = System.IO.Directory.GetFiles(pathIntoServer2);
-                // Copy the files and overwrite destination files if they already exist.
-                foreach (string dirPath in Directory.GetDirectories(pathIntoServer2, "*",
-SearchOption.AllDirectories))
-                    Directory.CreateDirectory(dirPath.Replace(pathIntoServer2, pathIntoServer));
-                //Copy all the files & Replaces any files with the same name
-                foreach (string newPath in Directory.GetFiles(pathIntoServer2, "*.*",
-                    SearchOption.AllDirectories))
-                    File.Copy(newPath, newPath.Replace(pathIntoServer2, pathIntoServer), true);
-                //Directory.Move(pathIntoServer2, pathIntoServer);
-                DeleteDirectory(pathIntoServer2);
-                Directory.CreateDirectory(pathIntoServer2);
-                //la 3 diventa 2
-                //Directory.Move(pathIntoServer3, pathIntoServer2);
-                foreach (string dirPath in Directory.GetDirectories(pathIntoServer3, "*",
-SearchOption.AllDirectories))
-                    Directory.CreateDirectory(dirPath.Replace(pathIntoServer3, pathIntoServer2));
-                //Copy all the files & Replaces any files with the same name
-                foreach (string newPath in Directory.GetFiles(pathIntoServer3, "*.*",
-                    SearchOption.AllDirectories))
-                    File.Copy(newPath, newPath.Replace(pathIntoServer3, pathIntoServer2), true);
-                DeleteDirectory(pathIntoServer3);
-                //chiamo questa 3
-                pathIntoClient = "3";
-                //recupero la root dellutente nel server
-                userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-                //cerco la cartella
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
-                pathString = pathIntoServer2;
-                //store into the db the date of 3rd folder. 
-                string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
-                //store the date into the db cartelle. 
-                string query = "insert into cartelle values('3','" + username + "','" + creation_time + "')";
-                db.Insert(query);
-            }
-            return Tuple.Create(flag, pathIntoServer);
-        }
-
-        private Tuple<bool, string> check_2nd(string userFolderIntoServer, string pathIntoClient, string pathIntoServer, string pathString, bool flag)
-        {
-            browse_folder(System.IO.Path.Combine(userFolderIntoServer, "2"), dictionary);
-            //un file "percorso(radice la directory iniziale) hash" uno per riga
-
-            //System.IO.StreamReader myfile = new System.IO.StreamReader(filePath);
-            foreach (var line in file_hash)
-            {
-                string key = line.Key;
-                string value = line.Value;
-
-
-                if (dictionary.ContainsKey("2\\" + key))
+                if (int.Parse(version)!=MyGlobal.num_versions)
                 {
-                    if (value == dictionary["2\\" + key])
-                    {
-                        copylist.Add("2\\" + key);
-                    }
-                    else
-                    {
-                        sendlist.Add(key);
-                    }
+                    flag = true;
+                    //questa diventa 3
+                    pathIntoClient = (int.Parse(version)+1).ToString();
+
+                    //cerco la cartella
+                    pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
                 }
                 else
                 {
-                    sendlist.Add(key);
-                }
-                //i remove to do the check on files deletede afterwards
-                dictionary.Remove("2\\" + key);
-            }
-
-            //if deleted files remain then count>0
-
-            if (dictionary.Count > 0 || sendlist.Count != 0)
-            {
-
-                flag = true;
-                //questa diventa 3
-                pathIntoClient = "3";
-
-                //cerco la cartella
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
-                string pathIntoClient2 = "2";
-                //recupero la root dellutente nel server
-                string userFolderIntoServer2 = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-
-                //cerco la cartella
-                string pathIntoServer2 = System.IO.Path.Combine(userFolderIntoServer2, pathIntoClient2);
-                pathString = pathIntoServer2;
-
-            }
-            return Tuple.Create(flag, pathIntoServer);
-        }
-        private Tuple<bool, string> check_1st(string userFolderIntoServer, string pathIntoClient, string pathIntoServer, string pathString, bool flag)
-        {
-            browse_folder(System.IO.Path.Combine(userFolderIntoServer, "1"), dictionary);
-            //un file "percorso(radice la directory iniziale) hash" uno per riga
-
-            //System.IO.StreamReader myfile = new System.IO.StreamReader(filePath);
-            foreach (var line in file_hash)
-            {
-                string key = line.Key;
-                string value = line.Value;
-
-
-                if (dictionary.ContainsKey("1\\" + key))
-                {
-                    if (value == dictionary["1\\" + key])
+                    flag=true;
+                    for (int i=1;i<=MyGlobal.num_versions;i++)
                     {
-                        copylist.Add("1\\" + key);
+                        if(i!=MyGlobal.num_versions)
+                        {
+                            pathIntoClient=i.ToString();
+                            pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
+                            string pathIntoClient2 = (i + 1).ToString();
+                            string userFolderIntoServer2 = System.IO.Path.Combine(MyGlobal.rootFolder, username);
+                            string pathIntoServer2 = System.IO.Path.Combine(userFolderIntoServer2, pathIntoClient2);
+                            
+                            DeleteDirectory(pathIntoServer);
+                            Directory.CreateDirectory(pathIntoServer);
+
+                            //la 2 diventa 1
+                            // i do a copy in place of a move
+                            string[] files = System.IO.Directory.GetFiles(pathIntoServer2);
+                            // Copy the files and overwrite destination files if they already exist.
+                            foreach (string dirPath in Directory.GetDirectories(pathIntoServer2, "*",
+            SearchOption.AllDirectories))
+                                Directory.CreateDirectory(dirPath.Replace(pathIntoServer2, pathIntoServer));
+                            //Copy all the files & Replaces any files with the same name
+                            foreach (string newPath in Directory.GetFiles(pathIntoServer2, "*.*",
+                                SearchOption.AllDirectories))
+                                File.Copy(newPath, newPath.Replace(pathIntoServer2, pathIntoServer), true);
+                        }
+                        else
+                        {
+                            pathIntoClient = i.ToString();
+                            pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
+                            DeleteDirectory(pathIntoServer);
+
+                                   
+                    //store into the db the date of 3rd folder. 
+                    string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
+                    //store the date into the db cartelle. 
+                    string query = "insert into cartelle values('3','" + username + "','" + creation_time + "')";
+                    db.Insert(query);
+                        }
                     }
-                    else
-                    {
-                        sendlist.Add(key);
-                    }
+                    
                 }
-                else
-                {
-                    sendlist.Add(key);
-                }
-                //i remove to do the check on files deletede afterwards
-                dictionary.Remove("1\\" + key);
-            }
-
-            //if deleted files remain then count>0
-
-            if (dictionary.Count > 0 || sendlist.Count != 0)
-            {
-                flag = true;
-                //quello che ho fatto fin'ora
-                pathIntoClient = "2";
-
-                //cerco la cartella
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
-                pathString = System.IO.Path.Combine(MyGlobal.rootFolder, username);
+                
             }
             return Tuple.Create(flag, pathIntoServer);
         }
@@ -489,40 +395,32 @@ SearchOption.AllDirectories))
              */
             try
             {
-                //TODO: dare un nome utile al flag
-                bool flag = false;
-                Console.WriteLine("Sincronizzazione file. Invio ok!");
+                bool files_to_load = false;
+                Console.WriteLine("Sincronizzazione file");
                 //send OK
                 byte[] msg = Encoding.ASCII.GetBytes("OK");
                 s.Send(msg);
                 //receive filelist:
                 receiveFile_json();
                 string pathString = null;
-                //fare un check sull'ultima cartella
                 string pathIntoClient = null;
                 //recover root user into server
                 string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
                 string pathIntoServer = null;
-                if (Directory.Exists(System.IO.Path.Combine(userFolderIntoServer, "3")))
+                //general version, without bad check_1st etc
+                for (int version = MyGlobal.num_versions; version > 0; version--)
                 {
-                    Tuple<bool, string> i = check_3rd(userFolderIntoServer, pathIntoClient, pathIntoServer, pathString, flag);
-                    flag = i.Item1;
-                    pathIntoServer = i.Item2;
+                    if (Directory.Exists(System.IO.Path.Combine(userFolderIntoServer, version.ToString())))
+                    {
+                        Tuple<bool, string> i = check_folder(userFolderIntoServer, pathIntoClient, pathIntoServer, pathString, files_to_load,version.ToString());
+                        files_to_load = i.Item1;
+                        pathIntoServer = i.Item2;
+                        break;
+                    }
                 }
-                else if (Directory.Exists(System.IO.Path.Combine(userFolderIntoServer, "2")))
-                {
-                    Tuple<bool, string> i = check_2nd(userFolderIntoServer, pathIntoClient, pathIntoServer, pathString, flag);
-                    flag = i.Item1;
-                    pathIntoServer = i.Item2;
-                }
-                else
-                {
-                    Tuple<bool, string> i = check_1st(userFolderIntoServer, pathIntoClient, pathIntoServer, pathString, flag);
-                    flag = i.Item1;
-                    pathIntoServer = i.Item2;
-                }
+
                 // Read the file and display it line by line.
-                if (flag == true)
+                if (files_to_load == true)
                 {
                     if (sendlist.Count > 0)
                     {
