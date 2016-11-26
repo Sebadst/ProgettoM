@@ -475,26 +475,33 @@ namespace ProgettoPDS
                             //if sendlist empty just close socket
                             tcpclnt.Client.Close();
                     }
+            }
+            catch (Exception e)
+            {
+                throw new SynchronizeException(); //to distinguish whether the synch was not ok or only the visualization
+            }
+            try
+            {
                 connect_to_server();
                 List<string> items = new List<string>();
                 items = view_folders();
                 //ViewFolder.viewFolder.folders.Items.Clear();
                 System.Windows.Application.Current.Dispatcher.Invoke(new Action(() =>
-    {
-        foreach (Window window in Application.Current.Windows)
-        {
-            if (window.GetType() == typeof(ViewFolder))
-            {
-                (window as ViewFolder).folders.Items.Clear();
-                (window as ViewFolder).create_tree(items, (window as ViewFolder));
-            }
-        }
-        //(Application.Current.MainWindow as ViewFolder).folders.Items.Clear();
-        // Window owner = System.Windows.Application.Current.MainWindow;
+                {
+                    foreach (Window window in Application.Current.Windows)
+                    {
+                        if (window.GetType() == typeof(ViewFolder))
+                        {
+                            (window as ViewFolder).folders.Items.Clear();
+                            (window as ViewFolder).create_tree(items, (window as ViewFolder));
+                        }
+                    }
+                    //(Application.Current.MainWindow as ViewFolder).folders.Items.Clear();
+                    // Window owner = System.Windows.Application.Current.MainWindow;
 
-        // Use owner here - it must be used on the UI thread as well..
-        //ShowMyWindow(owner);
-    }));
+                    // Use owner here - it must be used on the UI thread as well..
+                    //ShowMyWindow(owner);
+                }));
                 if (this.path_too_long)
                 {
                      throw new PathTooLongException();
@@ -616,6 +623,14 @@ namespace ProgettoPDS
     */
         
        
+    }
+
+    public class SynchronizeException : Exception
+    {
+        public SynchronizeException() 
+        { 
+        
+        }
     }
 
     

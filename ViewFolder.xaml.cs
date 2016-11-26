@@ -29,9 +29,11 @@ namespace ProgettoPDS
     /// 
     public partial class ViewFolder : Window
     {
+        
         Client client;
         string path_to_synch;
         bool path_too_long = false;
+        bool view_error = true;
         List<string> items = new List<string>();
         public ViewFolder(Client client,string path)
         {
@@ -75,8 +77,6 @@ namespace ProgettoPDS
                 (sender as BackgroundWorker).ReportProgress(0); //start pbar
                 items = client.view_folders();
 
-
-
                 e.Result = result;
             }
             catch
@@ -84,6 +84,7 @@ namespace ProgettoPDS
                 e.Result = -1;
             }
         }
+
         void firstsynch_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if ((int)e.Result != -1)
@@ -307,6 +308,11 @@ namespace ProgettoPDS
                 e.Result = -1;
                 this.path_too_long = true;
             }
+            catch(SynchronizeException ex)
+            {
+                e.Result = -1;
+                this.view_error = true;
+            }
             catch (Exception ex)
             {
                 e.Result = -1;
@@ -338,6 +344,11 @@ namespace ProgettoPDS
                 if(path_too_long)
                 {
                     message.Content = "Sincronizzazione ok. Alcuni file avevano un percorso troppo lungo e non sono stati trasferiti";
+                }
+                else if(view_error)
+                {
+                    message.Content = "Sincronizzazione ok. Errore di connessione durante la visualizzazione";
+
                 }
                 else
                 {

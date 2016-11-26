@@ -24,14 +24,16 @@ namespace ServerPDS
         DBConnect db;
         BlockingCollection<string> ac;
         //vars aggiunte da seba
-        //TODO: change var name
+        //TODO: change var name and check which one are useless (for instance ac)
         Dictionary<string, string> dictionary = new Dictionary<string, string>();
         Dictionary<string, string> file_hash = new Dictionary<string, string>();
         List<string> view_list = new List<string>();
         List<string> copylist = new List<string>();
         List<string> sendlist = new List<string>();
 
-
+        //TODO: HOW THE HELL DO I DO EVERYTHING ATOMIC NOW? I MUST USE MYSQL ROLLBACK, NO OTHER WAY ACCORDING TO ME..
+        //IT ALSO SOLVES MY OTHER ISSUE OF HAVING MULTIPLE TIMES THE SAME FILE INTO THE SERVER. THIS MEANS HOWEVER THAT ALL THE SYNCHRONIZE
+        //MUST BE CHANGED. LET S TRY AT LEAST TO DO NOT CHANGE THE VISUALIZE 
         public Logger(Socket sock, string username, string password, BlockingCollection<string> ac)
         {
             this.s = sock;
