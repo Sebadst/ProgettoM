@@ -35,9 +35,12 @@ namespace ServerPDS
 
             connection = new MySqlConnection(connectionString);
         }
-
+        public MySqlConnection getConnection()
+        {
+            return this.connection;
+        }
         //open connection to database
-        private bool OpenConnection()
+        public bool OpenConnection()
         {
             try
             {
@@ -67,7 +70,7 @@ namespace ServerPDS
         }
 
         //Close connection
-        private bool CloseConnection()
+        public bool CloseConnection()
         {
             try
             {
@@ -83,34 +86,39 @@ namespace ServerPDS
         }
 
         //Insert statement
-        public void Insert(string qry)
+        public void Insert(string qry,bool open_connect=true)
         {
             string query = qry;
-
-            //open connection
-            if (this.OpenConnection() == true)
+            if (open_connect == true)
             {
+                this.OpenConnection();
+            }
                 //create command and assign the query and connection from the constructor
                 MySqlCommand cmd = new MySqlCommand(query, connection);
 
                 //Execute command
                 cmd.ExecuteNonQuery();
 
-
+            if (open_connect ==true)
+            {
                 //close connection
                 this.CloseConnection();
             }
+            
 
         }
 
         //Update statement
-        public void Update(string qry)
+        public void Update(string qry,bool open_connect=true)
         {
             string query = qry;
 
             //Open connection
-            if (this.OpenConnection() == true)
+            if (open_connect == true)
             {
+                this.OpenConnection();
+            }
+            
                 //create mysql command
                 MySqlCommand cmd = new MySqlCommand();
                 //Assign the query using CommandText
@@ -120,35 +128,43 @@ namespace ServerPDS
 
                 //Execute query
                 cmd.ExecuteNonQuery();
-
+            if (open_connect==true){
                 //close connection
                 this.CloseConnection();
             }
+            
         }
 
         //Delete statement
-        public void Delete(string qry)
+        public void Delete(string qry,bool open_connect=true)
         {
             string query = qry;
-
-            if (this.OpenConnection() == true)
+            if (open_connect == true)
             {
+                this.OpenConnection();
+            }
+ 
                 MySqlCommand cmd = new MySqlCommand(query, connection);
                 cmd.ExecuteNonQuery();
-                this.CloseConnection();
-            }
+                if (open_connect == true)
+                {
+                    this.CloseConnection();
+                }
+            
+ 
         }
 
 
         //Count statement
-        public int Count(string qry)
+        public int Count(string qry,bool open_connect=true)
         {
             string query = qry;
             int Count = -1;
 
-            //Open Connection
-            if (this.OpenConnection() == true)
+            if (open_connect == true)
             {
+                this.OpenConnection();
+            }
                 //Create Mysql Command
                 MySqlCommand cmd = new MySqlCommand(query, connection);
 
@@ -156,76 +172,52 @@ namespace ServerPDS
                 Count = int.Parse(cmd.ExecuteScalar() + "");
 
                 //close Connection
-                this.CloseConnection();
+            if(open_connect==true){
+            this.CloseConnection();
+            }
 
                 return Count;
-            }
-            else
-            {
-                return Count;
-            }
+            
         }
 
-        //Select statement
-        public List<string>[] Select(string qry)
+        //Select statements
+
+        public List<string>[] Select(string qry,List<string>[] container,bool open_connect=true)
         {
             string query = qry;
 
-            //Create a list to store the result
-            List<string>[] list = new List<string>[3];
-            list[0] = new List<string>();
-            list[1] = new List<string>();
-            list[2] = new List<string>();
-
-            //Open connection
-            if (this.OpenConnection() == true)
+            if (open_connect == true)
             {
+                this.OpenConnection();
+            }
+            
                 //Create Command
                 MySqlCommand cmd = new MySqlCommand(query, connection);
                 //Create a data reader and Execute the command
                 MySqlDataReader dataReader = cmd.ExecuteReader();
 
-                //TODO: change it absolutely, bad function. it is a tmp version
-
                 //Read the data and store them in the list
-                
-                    while (dataReader.Read())
-                    {
-                        try
-                        {
-                            list[0].Add(dataReader["username"] + "");
-                            list[1].Add(dataReader["password"] + "");
-                            list[2].Add(dataReader["folder"] + "");
+                for (int i = 0; i < container.Length; i++)
+                {
+                    container[i]=new List<string>();
+                }
+                while (dataReader.Read())
+                {
+                        for(int i=0;i<container.Length;i++){
+                            container[i].Add(dataReader[i] + "");
                         }
-                        catch
-                        {
-                            list[0].Add(dataReader["data"] + "");
-                        }
-                    }
+                }
                 
                 //close Data Reader
                 dataReader.Close();
-
+            if(open_connect==true)
                 //close Connection
                 this.CloseConnection();
 
                 //return list to be displayed
-                return list;
-            }
-            else
-            {
-                return list;
-            }
+                return container;
+            
         }
 
-        //Backup
-        public void Backup()
-        {
-        }
-
-        //Restore
-        public void Restore()
-        {
-        }
     }
 }

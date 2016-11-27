@@ -473,7 +473,8 @@ namespace ProgettoPDS
                         }
                             // close socket after every synch
                             //if sendlist empty just close socket
-                            tcpclnt.Client.Close();
+                            // tcpclnt.Client.Close(); //i will not close the socket and use the same for the next visualization
+                            //i need to do this to keep the server simple
                     }
             }
             catch (Exception e)
@@ -482,7 +483,7 @@ namespace ProgettoPDS
             }
             try
             {
-                connect_to_server();
+                //connect_to_server();
                 List<string> items = new List<string>();
                 items = view_folders();
                 //ViewFolder.viewFolder.folders.Items.Clear();
@@ -516,15 +517,18 @@ namespace ProgettoPDS
             //}
         }
 
-        public List<string> view_folders(){
+        public List<string> view_folders(bool first_synch=false){
             /*
              * send view request for visualize files in the server. V:username
              */
             try
             {
-                if (login(username, password) != 1)
+                if (first_synch == true)
                 {
-                    throw new Exception();
+                    if (login(username, password) != 1)
+                    {
+                        throw new Exception();
+                    }
                 }
                 //view request
                 byte[] credentials = Encoding.UTF8.GetBytes("V:" + username);

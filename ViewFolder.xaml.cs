@@ -75,7 +75,8 @@ namespace ProgettoPDS
             {
                 int result = 0; // used for the worker result
                 (sender as BackgroundWorker).ReportProgress(0); //start pbar
-                items = client.view_folders();
+
+                items = client.view_folders(true);
 
                 e.Result = result;
             }

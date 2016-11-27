@@ -91,6 +91,10 @@ namespace ProgettoPDS
                     return;
                 }
                 string zipPath = System.IO.Path.Combine(MyGlobalClient.zipDirectory,"result.zip");
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
                 ZipFile.CreateFromDirectory(arg.path, zipPath);
                 //send the zip file
                 client.send_zip(arg.path, zipPath);    
