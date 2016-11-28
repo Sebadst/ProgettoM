@@ -117,8 +117,8 @@ namespace ProgettoPDS
             MenuItem data = new MenuItem() { Title = items[0] };
             MenuItem other_data = null;
             v.folders.Items.Add(data);
-            MenuItem root = new MenuItem() { Title = System.IO.Path.GetDirectoryName(items[1]), Icon = this.getIcon(System.IO.Path.GetDirectoryName(items[1]), true, true) };
-            root.Items.Add(new MenuItem() { Title = items[1], Icon = this.getIcon(items[1], true, false) });
+            MenuItem root = new MenuItem() { Title = System.IO.Path.GetDirectoryName(items[1]), Icon = this.getIcon(System.IO.Path.GetDirectoryName(items[1]), true, true) ,isDirectory=true};
+            root.Items.Add(new MenuItem() { Title = items[1], Icon = this.getIcon(items[1], true, false),isDirectory=false });
             d.Add(System.IO.Path.GetDirectoryName(items[1]), root);
             string previous_path = System.IO.Path.GetDirectoryName(items[1]);
             paths.Add(System.IO.Path.GetDirectoryName(items[1]));
@@ -129,7 +129,7 @@ namespace ProgettoPDS
                               DateTimeStyles.None, out date))
                 {
                     Console.WriteLine(filename);
-                    other_data = new MenuItem() { Title = filename ,  Icon = this.getIcon(filename,true,false) };                   
+                    other_data = new MenuItem() { Title = filename ,  Icon = this.getIcon(filename,true,false),isDirectory=false };                   
                     continue;
                 }
                 //take the path
@@ -139,9 +139,9 @@ namespace ProgettoPDS
                 {
                     //add as subfolder or subfile
                     //the folder
-                    MenuItem childitem1 = new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true)};
+                    MenuItem childitem1 = new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true),isDirectory=true};
                     //the file
-                    childitem1.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
+                    childitem1.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false),isDirectory=false });
                     d[previous_path].Items.Add(childitem1);
                     paths.Add(path);
                     previous_path = path;
@@ -151,7 +151,7 @@ namespace ProgettoPDS
                 else if (path == previous_path)
                 {
                     //same subfolder
-                    d[path].Items.Add(new MenuItem() { Title = filename,   Icon = this.getIcon(filename,true,false) });
+                    d[path].Items.Add(new MenuItem() { Title = filename,   Icon = this.getIcon(filename,true,false),isDirectory=false });
                 }
                 //do another folder
                 else
@@ -163,9 +163,9 @@ namespace ProgettoPDS
                     {                    
                         if(path.Contains(s)){
                             //the folder
-                            MenuItem childItem=new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true)};
+                            MenuItem childItem=new MenuItem() { Title = path ,   Icon = this.getIcon(path,true,true),isDirectory=true};
                             //the file
-                            childItem.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
+                            childItem.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false),isDirectory=false });
                             d[s].Items.Add(childItem);
                             previous_path=path;
                             d.Add(path,childItem);
@@ -190,8 +190,8 @@ namespace ProgettoPDS
                             
                             v.folders.Items.Add(other_root);
                         }
-                        other_root = new MenuItem() { Title = path, Icon = this.getIcon(path, true, true) };
-                        other_root.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false) });
+                        other_root = new MenuItem() { Title = path, Icon = this.getIcon(path, true, true),isDirectory=true };
+                        other_root.Items.Add(new MenuItem() { Title = filename, Icon = this.getIcon(filename, true, false),isDirectory=false });
                         d.Add(path, other_root);
                         previous_path = path;
                         paths.Add(path);
@@ -237,6 +237,11 @@ namespace ProgettoPDS
                     message.Content = "";
                     try
                     {
+                        if ((folders.SelectedItem as MenuItem).isDirectory == true)
+                        {
+                            message.Content = "Puoi scaricare solo files, non cartelle";
+                            return;
+                        }
                         f = (folders.SelectedItem as MenuItem).Title;
                     }
                     catch
@@ -519,7 +524,7 @@ namespace ProgettoPDS
 
         public string Title { get; set; }
         public ImageSource Icon { get; set; }
-        
+        public bool isDirectory;
         
         public ObservableCollection<MenuItem> Items { get; set; }
     }

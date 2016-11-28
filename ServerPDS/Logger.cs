@@ -162,15 +162,25 @@ namespace ServerPDS
              * handle the download request of the client (of a file or folder)
              */
             //recover the root of user into server
-            //TODO: after synch
+            
             string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-            string to_download = System.IO.Path.Combine(userFolderIntoServer, cmd.Substring(2, cmd.Length - 2));
-            if (Directory.Exists(to_download))
+            string to_download =  cmd.Substring(2, cmd.Length - 2);
+            /*if (Directory.Exists(to_download)) //not possible anymore after the change in the storage
             {
                 wrap_send_directory(to_download);
-            }
-            else if (File.Exists(to_download))
+            }*/
+            //if (File.Exists(to_download))
+            int intLocation = to_download.IndexOf("\\");
+            string folder_version=to_download.Substring(0,intLocation);
+            string filename=to_download.Substring(intLocation+1,to_download.Length-(intLocation+2)+1);
+            string query = "select path from files where username='"+username+"' and folder_version='"+folder_version+"' and filename='"+filename.Replace(@"\", @"\\").Replace("'", @"\'")+"'";
+            string path=db.Select(query,new List<string>[1]).ElementAt(0).First();
+            
+            
+            if (path!="")
             {
+                path = Path.Combine(userFolderIntoServer, path);
+                to_download = Path.Combine(path, filename);
                 wrap_send_file(to_download);
             }
             else
@@ -361,6 +371,7 @@ namespace ServerPDS
             //recover root user into server
             string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
             string pathIntoServer = null;
+            bool committed = false;
             using (var con = db.getConnection())
             {
                 db.OpenConnection();
@@ -507,7 +518,7 @@ namespace ServerPDS
                                     if (!Directory.Exists(folder))
                                     {
                                         //create the folder
-                                        //TODO: undo of this operation in case of rollback
+                                        //TODO: undo of this operation in case of rollback. probably i don t need it
                                         DirectoryInfo u1 = Directory.CreateDirectory(folder);
                                     }
                                     receiveFile(pathIntoServer);
@@ -531,7 +542,7 @@ namespace ServerPDS
                                     if (!Directory.Exists(folder))
                                     {
                                         //create the folder
-                                        //TODO: undo of this operation in case of rollback
+                                        //TODO: undo of this operation in case of rollback. probably i don t need it
                                         DirectoryInfo u1 = Directory.CreateDirectory(folder);
                                         Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(folder));
                                         //at the very end store date into the db
@@ -557,7 +568,9 @@ namespace ServerPDS
                         s.Send(msg);
                     }
                     tran.Commit();
+                    committed = true;
                     db.CloseConnection();
+                    
                 }
                 catch (Exception ex)
                 {
@@ -566,41 +579,50 @@ namespace ServerPDS
                     Console.WriteLine(ex.ToString());
                     Console.WriteLine("Eccezione in server..sincronizza files");
                 }
-                //now i can remove files 
-                foreach (KeyValuePair<string, string> entry in remove_dict)
+                if (committed == true)
                 {
-                    string file = Path.Combine(entry.Value, entry.Key);
-                    file = Path.Combine(userFolderIntoServer, file);
-                    File.Delete(file);//TODO: put it into try catch
-                }
-                //and move the ones i saved in tmp
-                int index = 0;
-                foreach (var f in sendlist)//TODO: a check to execute this loop only if i used the tmp
-                {
-                    pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
-                    pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
-                    string folder = Path.GetDirectoryName(pathIntoServer);
-                    if (!Directory.Exists(folder))
+                    //now i can remove files 
+                    foreach (KeyValuePair<string, string> entry in remove_dict)
                     {
-                        DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                        string file = Path.Combine(entry.Value, entry.Key);
+                        file = Path.Combine(userFolderIntoServer, file);
+                        File.Delete(file);//TODO: put it into try catch
                     }
-                    //do the actualy cut-paste from tmp
-                    string tmp=Path.Combine(userFolderIntoServer,"tmp");
-                    tmp = Path.Combine(tmp, f.Item1);
-                    System.IO.File.Move(tmp, pathIntoServer);
-                    index = index + 1;
-                }
+                    //and move the ones i saved in tmp
+                    int index = 0;
+                    foreach (var f in sendlist)//TODO: a check to execute this loop only if i used the tmp
+                    {
+                        pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
+                        pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
+                        string folder = Path.GetDirectoryName(pathIntoServer);
+                        if (!Directory.Exists(folder))
+                        {
+                            DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                        }
+                        //do the actualy cut-paste from tmp
+                        string tmp = Path.Combine(userFolderIntoServer, "tmp");
+                        tmp = Path.Combine(tmp, f.Item1);
+                        System.IO.File.Move(tmp, pathIntoServer);
+                        index = index + 1;
+                    }
                     //TODO: problem. i have to handle the view request here, or i will have a view request after 
                     //the synch. it may be executed before the commit so it will read wrong data
                     byte[] bytes = new Byte[1024];
                     //receive the folder to synch
                     int bytesRec = s.Receive(bytes);
                     string cmd = Encoding.ASCII.GetString(bytes, 0, bytesRec);
-                    //verify the command
+                    //view request happens only if everything went well in the synch, so only in case of commit
                     if (String.Compare(cmd.Substring(0, 2), "V:") == 0)
                     {
                         view_request();
                     }
+                }
+                else
+                {
+                    string tmp = Path.Combine(userFolderIntoServer, "tmp");
+                    if (Directory.Exists(tmp))
+                        Directory.Delete(tmp);
+                }
                 
             }
         }
