@@ -212,6 +212,7 @@ namespace ProgettoPDS
             /*
               * called when choose folder is clicked
               */
+            message.Content = "";
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
             System.Windows.Forms.DialogResult result = dialog.ShowDialog();
             // Get the selected file name and display in a TextBox 
@@ -228,6 +229,7 @@ namespace ProgettoPDS
             /*
              * called when download_button is clicked
              */
+            message.Content = "";
             string[] format = { "yyyyMMdd-HHmm" };
             DateTime date;
             String f;
@@ -353,7 +355,7 @@ namespace ProgettoPDS
                 }
                 else if(view_error)
                 {
-                    message.Content = "Sincronizzazione ok. Errore di connessione durante la visualizzazione";
+                    message.Content = "Sincronizzazione ok. Errore di visualizzazione";
 
                 }
                 else
@@ -373,6 +375,7 @@ namespace ProgettoPDS
 
         private void set_interval(object sender, RoutedEventArgs e)
         {
+            message.Content = "";
             if (this.interval.Value is int && this.interval.Value>0 && this.interval.Value<301)
             {
                 MyGlobalClient.minutes_for_synch = (int)this.interval.Value;

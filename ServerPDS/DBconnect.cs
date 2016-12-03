@@ -184,13 +184,15 @@ namespace ServerPDS
 
         public List<string>[] Select(string qry,List<string>[] container,bool open_connect=true)
         {
-            string query = qry;
-
-            if (open_connect == true)
+            try
             {
-                this.OpenConnection();
-            }
-            
+                string query = qry;
+
+                if (open_connect == true)
+                {
+                    this.OpenConnection();
+                }
+
                 //Create Command
                 MySqlCommand cmd = new MySqlCommand(query, connection);
                 //Create a data reader and Execute the command
@@ -199,23 +201,30 @@ namespace ServerPDS
                 //Read the data and store them in the list
                 for (int i = 0; i < container.Length; i++)
                 {
-                    container[i]=new List<string>();
+                    container[i] = new List<string>();
                 }
                 while (dataReader.Read())
                 {
-                        for(int i=0;i<container.Length;i++){
-                            container[i].Add(dataReader[i] + "");
-                        }
+                    for (int i = 0; i < container.Length; i++)
+                    {
+                        container[i].Add(dataReader[i] + "");
+                    }
                 }
-                
+
                 //close Data Reader
                 dataReader.Close();
-            if(open_connect==true)
-                //close Connection
-                this.CloseConnection();
+                if (open_connect == true)
+                    //close Connection
+                    this.CloseConnection();
 
                 //return list to be displayed
                 return container;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return null;
+            }
             
         }
 

@@ -12,13 +12,6 @@ using System.Windows;
 namespace ProgettoPDS
 {
     
-    //TODO: check that synch is ACID
-    
-    //if download ans synch requests are sent in same moment is not a problem since they are on different 
-    //threads and each socket will receive its own data. but what happens if i send a download request and
-    //immediately a synch starts and it implies to remove that file?i guess i should either deny this or
-    //display a msg in client that says that the download has not been successful because of this reason
-    //TODO: check with giorgio if it's ok leaving it like this.
     public class Client
         //R. signup
         //L. login
@@ -171,13 +164,13 @@ namespace ProgettoPDS
             }
         }
 
-        public int send_zip(string path2,string file)
+        public int send_zip(string path,string file)
         {
             /*
              * send zipped folder the first time. S:path
              */
-                int l = path2.Length - 3;
-                string path = path2.Substring(3, l);
+                //int l = path2.Length - 3;
+                //string path = path2.Substring(3, l);
                 byte[] credentials = Encoding.UTF8.GetBytes("S" + ":" + path);
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
                 int response = receive();
@@ -302,7 +295,6 @@ namespace ProgettoPDS
                 while (received < length)
                 {
                     bytesRead = tcpclnt.Client.Receive(buffer);
-                    string hello = Encoding.ASCII.GetString(buffer, 0, bytesRead);//TODO: remove it
                     received += bytesRead;
                     if (received >= length)
                     {
@@ -415,8 +407,9 @@ namespace ProgettoPDS
             }
         }
 
-        public void synchronize(string path2)
+        public void synchronize(string path)
         {
+            string disk = path.Substring(0, 2);
             /*
              * synch request. S:path
              */
@@ -429,24 +422,13 @@ namespace ProgettoPDS
                 }
                 //send synch request
                 file_hash = new Dictionary<string, string>();
-                string path = null;
-                if (path2.StartsWith("C:\\"))
-                {
-                    int l = path2.Length - 3;
-                    path = path2.Substring(3, l);
-                }
-                else
-                {
-                    path = path2;
-                }
+                //path MUST contain the C: or D: 
                 byte[] credentials = Encoding.UTF8.GetBytes("S" + ":" + path);
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
                 int response = receive();
                 if (response == 1)
                 {
-                    //take folder name, add C:
-                    string path1 = @"C:\";
-                    string dir = path1 + path;
+                    string dir = path;
                     //create file
                     this.path_too_long = false;
                     browse_folder_json(dir);
@@ -460,11 +442,11 @@ namespace ProgettoPDS
                            List<string> to_send = JsonConvert.DeserializeObject<List<string>>(rx);
                            //send the new requested files
                            //read file line by line
-                           //add C://
                            foreach (var f in to_send)
                            {
-                                string newf = "C:\\" + f;
-                                wrap_send_file(newf);
+                                string newf = f;
+                                string file_to_send = disk +"\\"+ newf;
+                                wrap_send_file(file_to_send);
                                 //receive something at each send
                                 if (receive()!=1)
                                     break;

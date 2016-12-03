@@ -39,6 +39,7 @@ namespace ProgettoPDS
            /*
              * called when choose folder is clicked
              */
+            message.Content = "";
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
             System.Windows.Forms.DialogResult result = dialog.ShowDialog();
             // Get the selected file name and display in a TextBox 
@@ -118,7 +119,7 @@ namespace ProgettoPDS
             {
                 pbar.Visibility = Visibility.Visible;
                 pbar.IsIndeterminate = true;
-                message.Content = "Synchronization in progress, please wait";
+                message.Content = "Sincronizzazione in corso, attendi";
             }
          }
         

@@ -47,6 +47,7 @@ namespace ProgettoPDS
             /*
              * called when login button is clicked
              */
+            message.Content = "";
             if (username.Text == "" || password.Password == "")
                 message.Content = "Non lasciare campi vuoti";
             else

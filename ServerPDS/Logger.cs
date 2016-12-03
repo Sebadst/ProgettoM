@@ -23,7 +23,7 @@ namespace ServerPDS
         private Socket s;
         Thread t;
         DBConnect db;
-        BlockingCollection<string> ac;
+        //BlockingCollection<string> ac;
         //vars aggiunte da seba
         //TODO: change var name and check which one are useless (for instance ac)
         Dictionary<string, string> dictionary = new Dictionary<string, string>();
@@ -40,7 +40,7 @@ namespace ServerPDS
             //instantiate the thread
             t = new Thread(new ThreadStart(this.action));
             db = new DBConnect();
-            this.ac = ac;
+            //this.ac = ac;
             t.Start();
         }
 
@@ -50,7 +50,7 @@ namespace ServerPDS
              * handle the request of the client to know if a folder has been already stored
              */
             //recover the name of folder that user wants to synch
-            //path to sync in format without c:
+            //path to sync in format WITH c:
             //recover the root of the user into the server
             string query = "select count(*) from cartelle where username='" + username + "'";
             int count = db.Count(query);
@@ -63,7 +63,6 @@ namespace ServerPDS
             }
             else
             {
-                //invio OK
                 byte[] msg = Encoding.ASCII.GetBytes("NULL");
                 s.Send(msg);
             }
@@ -132,8 +131,9 @@ namespace ServerPDS
              * handle the synchronization request of the client
              */
             //recover the name of folder that user wants to synch
-            //path to sync in format without c:
-            string pathIntoClient = words[1];
+            //path to sync in format WITH c:
+            string disk = words[1];
+            string pathIntoClient = words[2];
             //recover the root of user into server
             string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
             ///userFolderIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
@@ -149,9 +149,9 @@ namespace ServerPDS
                 //if is first synch
                 userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
                 userFolderIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
+                pathIntoServer = userFolderIntoServer + pathIntoClient;//System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);//for some weird reason combine does not work
 
-                sincronizzaDirectory(pathIntoClient, pathIntoServer);
+                sincronizzaDirectory(disk,pathIntoClient, pathIntoServer);
             }
             Console.WriteLine("sincronizzazione Finita");
         }
@@ -214,13 +214,7 @@ namespace ServerPDS
                     //split the string
                     char[] delimiterChars = { ':' };
                     string[] words = cmd.Split(delimiterChars);
-                    if (words.Length != 2)
-                    {
-                        byte[] msg = Encoding.ASCII.GetBytes("E.comando errato");
-                        s.Send(msg);
-                        s.Shutdown(SocketShutdown.Both);
-                        throw new Exception("E.comando errato words.Leght!=3");
-                    }
+
                     //ask for presence of directory to know if client has to load viewfolder or addfolder
                     if (String.Compare(cmd.Substring(0, 2), "A:") == 0)
                     {
@@ -260,13 +254,11 @@ namespace ServerPDS
         }
 
 
-        public void sincronizzaDirectory( string pic, string pis)
+        public void sincronizzaDirectory(string disk, string pic, string pis)
         {
             /*
              * called for 1st synch
              */
-            //TODO: set it atomic. i must be sure that i will do undo only of the ones that are written here, so check if i 
-            //am doing a new connection with db or not
             string query;
 
             using (var con = db.getConnection())
@@ -276,7 +268,9 @@ namespace ServerPDS
 
                 try
                 {
-                    string escapedPath = pic.Replace(@"\", @"\\").Replace("'", @"\'");
+                    disk = disk + ":";
+                    string path_to_update = disk+ pic;
+                    string escapedPath = path_to_update.Replace(@"\", @"\\").Replace("'", @"\'");
 
                     query = "update utenti set folder='" + escapedPath + "' where username='" + username + "'";
                     db.Update(query, false);
@@ -437,11 +431,25 @@ namespace ServerPDS
                         //remove from db oldest version and put in remvoelist_ those files to be removed phisically of the old version that are not referenced in other versions
                         if (Convert.ToInt32(last_version) >= MyGlobal.num_versions)
                         {
-                            query = "select filename,path from files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='"+username+"') f2 WHERE f1.username='"+username+"' and f1.folder_version  = f2.min_id and not exists (select 1 from files f3 where f1.filename = f3.filename and f1.path = f3.path and f3.folder_version>min_id)";
-                            List<string>[] files_to_remove = db.Select(query, new List<string>[2],false);
-                            remove_dict = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
+                            //TODO:see how i can do this and the next query with a single one. not in and not exists seems not to work
+                            query ="select filename,path from files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='"+username+"') f2 WHERE f1.username='"+username+"' and f1.folder_version  = f2.min_id and f1.filename not in (select filename from files f3 where f3.username=f1.username and f3.filename=f1.filename and f3.path=f1.path and f3.folder_version>f2.min_id)";
+                            List<string>[] files_to_remove = db.Select(query, new List<string>[2], false);
+                            remove_dict  = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
                       .ToDictionary(x => x.k, x => x.v);
-                          
+                            /*
+                            query = "select filename,path,min_id from files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='" + username + "') f2 WHERE f1.username='" + username + "' and f1.folder_version  = f2.min_id ";
+
+                            List<string>[] files_to_remove = db.Select(query, new List<string>[3],false);
+                            Dictionary<string,string>result = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
+                      .ToDictionary(x => x.k, x => x.v);
+                            string min_id=files_to_remove[2].First();
+                            foreach (KeyValuePair<string, string> row in result)
+                            {
+                                query="select filename,path from files where filename = '"+row.Key+"' and path = '"+row.Value+"' and folder_version>'"+min_id.ToString()+"'";
+                                files_to_remove = db.Select(query, new List<string>[2],false);
+                                if (files_to_remove[0].Count>0)
+                                    remove_dict.Add(files_to_remove[0].First(),files_to_remove[1].First());
+                            }*/
 
                             query = "delete f1 FROM files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='"+username+"') f2 WHERE f1.folder_version  = f2.min_id and f1.username='"+username+"'";
                             db.Delete(query,false);
@@ -513,15 +521,15 @@ namespace ServerPDS
                                 foreach (var f in sendlist)
                                 {
                                     
-                                    pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
-                                    string folder = Path.GetDirectoryName(pathIntoServer);
+                                    string pis = Path.Combine(pathIntoServer, f.Item1);
+                                    string folder = Path.GetDirectoryName(pis);
                                     if (!Directory.Exists(folder))
                                     {
                                         //create the folder
                                         //TODO: undo of this operation in case of rollback. probably i don t need it
                                         DirectoryInfo u1 = Directory.CreateDirectory(folder);
                                     }
-                                    receiveFile(pathIntoServer);
+                                    receiveFile(pis);
                                     msg = Encoding.ASCII.GetBytes("OK");
                                     s.Send(msg);
                                 }
@@ -590,22 +598,28 @@ namespace ServerPDS
                     }
                     //and move the ones i saved in tmp
                     int index = 0;
-                    foreach (var f in sendlist)//TODO: a check to execute this loop only if i used the tmp
+                    string tmp = Path.Combine(userFolderIntoServer, "tmp");
+                    if (Directory.Exists(tmp))// a check to execute this loop only if i used the tmp
                     {
-                        pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
-                        pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
-                        string folder = Path.GetDirectoryName(pathIntoServer);
-                        if (!Directory.Exists(folder))
+                        foreach (var f in sendlist)
                         {
-                            DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                            pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
+                            pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
+                            string folder = Path.GetDirectoryName(pathIntoServer);
+                            if (!Directory.Exists(folder))
+                            {
+                                DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                            }
+                            //do the actualy cut-paste from tmp
+                  
+                            string tmp_file = Path.Combine(tmp, f.Item1);
+                            if(File.Exists(tmp_file))
+                                System.IO.File.Move(tmp_file, pathIntoServer);
+                            index = index + 1;
                         }
-                        //do the actualy cut-paste from tmp
-                        string tmp = Path.Combine(userFolderIntoServer, "tmp");
-                        tmp = Path.Combine(tmp, f.Item1);
-                        System.IO.File.Move(tmp, pathIntoServer);
-                        index = index + 1;
                     }
-                    //TODO: problem. i have to handle the view request here, or i will have a view request after 
+                   
+                    //problem. i have to handle the view request here, or i will have a view request after 
                     //the synch. it may be executed before the commit so it will read wrong data
                     byte[] bytes = new Byte[1024];
                     //receive the folder to synch
