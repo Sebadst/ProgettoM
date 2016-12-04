@@ -287,6 +287,7 @@ namespace ServerPDS
                     string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                     int length = Convert.ToInt32(cmdFileSize);
                     s.Send(msg);
+                    buffer = new byte[length];
                     int received = 0;
                     while (received < length)
                     {
@@ -304,27 +305,27 @@ namespace ServerPDS
                     Console.WriteLine("File Ricevuto");
 
                     //create the first upload folder for client
-                DirectoryInfo u1 = Directory.CreateDirectory(System.IO.Path.Combine("1", pis));
-                Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(pis));
-                //store the date into the db cartelle. 
-                string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
-                //store the date into the db cartelle. 
-                query = "insert into cartelle values('1','" + username + "','" + creation_time + "')";
-                db.Insert(query,false);
-                //extract
-                ZipFile.ExtractToDirectory(username+".zip", pis);
-                Console.WriteLine("file estratto");
-                //store also the files    
-                Dictionary<string,string> files_to_store=new Dictionary<string,string>();
-                this.browse_folder(pis,files_to_store);
-                foreach (KeyValuePair<string, string> entry in files_to_store)
-                {
-                    //escape the path after removing the info concerning the version , 1 in this case
-                    escapedPath = entry.Key.Substring(2).Replace(@"\", @"\\").Replace("'", @"\'");
-                    
-                    query = "INSERT INTO FILES VALUES('" + username + "','" + escapedPath + "','" + entry.Value + "','1','1')";
+                    DirectoryInfo u1 = Directory.CreateDirectory(System.IO.Path.Combine("1", pis));
+                    Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(pis));
+                    //store the date into the db cartelle. 
+                    string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
+                    //store the date into the db cartelle. 
+                    query = "insert into cartelle values('1','" + username + "','" + creation_time + "')";
                     db.Insert(query,false);
-                }
+                    //extract
+                    ZipFile.ExtractToDirectory(username+".zip", pis);
+                    Console.WriteLine("file estratto");
+                    //store also the files    
+                    Dictionary<string,string> files_to_store=new Dictionary<string,string>();
+                    this.browse_folder(pis,files_to_store);
+                    foreach (KeyValuePair<string, string> entry in files_to_store)
+                    {
+                        //escape the path after removing the info concerning the version , 1 in this case
+                        escapedPath = entry.Key.Substring(2).Replace(@"\", @"\\").Replace("'", @"\'");
+                    
+                        query = "INSERT INTO FILES VALUES('" + username + "','" + escapedPath + "','" + entry.Value + "','1','1')";
+                        db.Insert(query,false);
+                    }
                     //send the last ok to client
                     msg = Encoding.ASCII.GetBytes("OK");
                     s.Send(msg);
@@ -353,8 +354,114 @@ namespace ServerPDS
                 }
             }
         }
+        public void fill_lists()
+        {
+            /*fill copylist and sendlist in synchronization*/
+            foreach (var line in file_hash)
+            {
+                string key = line.Key;
+                string value = line.Value;
+                if (dictionary.ContainsKey(key))
+                {
+                    if (value == dictionary[key])
+                    {
+                        copylist.Add(key);
+                    }
+                    else
+                    {
+                        sendlist.Add(new Tuple<string, string>(key, value));
+                    }
+                    //i remove to do the check on files deletede afterwards
+                    dictionary.Remove(key);
+                }
+                else
+                {
+                    sendlist.Add(new Tuple<string, string>(key, value));
+                }
+            }
+        }
 
-       
+        public void receiveFilesForSynch(string last_version,string userFolderIntoServer,string pathIntoServer,List<string> new_paths)
+        {
+            /*
+             * called in Sincronizzafiles to receive and put in the correct folder the files from client
+             */
+            try
+            {
+                byte[] msg;
+                //prepare to receive the new files from the client 
+                string json = JsonConvert.SerializeObject(sendlist.Select(t => t.Item1).ToList());
+                byte[] credentials = Encoding.UTF8.GetBytes(json);
+                //send the dimension in order to prepare a coherent buffer in client
+                byte[] length = Encoding.UTF8.GetBytes(credentials.Length.ToString());
+                s.Send(length, SocketFlags.None);
+                byte[] bytes_rec = new Byte[1024];
+                int response = s.Receive(bytes_rec);
+                if (response > 0)
+                {
+                    //before i have to send the length and receive ok
+                    s.Send(credentials, SocketFlags.None);
+                }
+                //now let's store these files somewhere
+                //according to the values stored in the db                        
+                //then i will only have to delete what must be deleted and to move everything
+                if (Convert.ToInt32(last_version) >= MyGlobal.num_versions)
+                {
+                    //if we already have more than 3 folders store in tmp since it may happen 
+                    //that all the folders already have a file with the same name and i cannot remove the previous 
+                    //if i m not sure that i have finished the transaction
+                    pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, "tmp");
+                    if (!Directory.Exists(pathIntoServer))
+                    {
+                        Directory.CreateDirectory(pathIntoServer);
+                    }
+                    foreach (var f in sendlist)
+                    {
+
+                        string pis = Path.Combine(pathIntoServer, f.Item1);
+                        string folder = Path.GetDirectoryName(pis);
+                        if (!Directory.Exists(folder))
+                        {
+                            //create the folder
+                            //TODO: undo of this operation in case of rollback. probably i don t need it
+                            DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                        }
+                        receiveFile(pis);
+                        msg = Encoding.ASCII.GetBytes("OK");
+                        s.Send(msg);
+                    }
+                }
+                else
+                {
+                    int i = 0;
+                    foreach (var f in sendlist)
+                    {
+                        pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(i));
+                        pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
+                        string folder = Path.GetDirectoryName(pathIntoServer);
+                        if (!Directory.Exists(folder))
+                        {
+                            //create the folder
+                            //TODO: undo of this operation in case of rollback. probably i don t need it
+                            DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                            Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(folder));
+                            //at the very end store date into the db
+                            string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
+                        }
+                        receiveFile(pathIntoServer);
+                        msg = Encoding.ASCII.GetBytes("OK");
+                        s.Send(msg);
+                        i = i + 1;
+                    }
+                }
+            }
+            catch
+            {
+                throw;
+            }
+            
+        }
+
         public void sincronizzaFiles(string path,string last_version)
         {
             /*
@@ -370,7 +477,6 @@ namespace ServerPDS
             {
                 db.OpenConnection();
                 MySqlTransaction tran = con.BeginTransaction();
-
                 try
                 {
                     bool files_to_load = false;
@@ -380,37 +486,13 @@ namespace ServerPDS
                     s.Send(msg);
                     //receive filelist:
                     receiveFile_json();
-                    
-
                     //check the files of the last version 
                     string query = "select filename,hash,path from files where username='" + username + "' and folder_version='" + last_version + "'";
                     List<string>[] old_files = db.Select(query, new List<string>[3],false);
                     dictionary = old_files[0].Zip(old_files[1], (k, v) => new { k, v })
                       .ToDictionary(x => x.k, x => x.v);
                     //fill copylist and sendlist
-                    foreach (var line in file_hash)
-                    {
-                        string key = line.Key;
-                        string value = line.Value;
-                        if (dictionary.ContainsKey(key))
-                        {
-                            if (value == dictionary[key])
-                            {
-                                copylist.Add(key);
-                            }
-                            else
-                            {
-                                sendlist.Add(new Tuple<string, string>(key, value));
-                            }
-                            //i remove to do the check on files deletede afterwards
-                            dictionary.Remove(key);
-                        }
-                        else
-                        {
-                            sendlist.Add(new Tuple<string, string>(key, value));
-                        }
-                    }
-
+                    fill_lists();
                     //if deleted files remain then count>0. in both cases a new version has to be created
                     if (dictionary.Count > 0 || sendlist.Count != 0)
                     {
@@ -436,27 +518,11 @@ namespace ServerPDS
                             List<string>[] files_to_remove = db.Select(query, new List<string>[2], false);
                             remove_dict  = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
                       .ToDictionary(x => x.k, x => x.v);
-                            /*
-                            query = "select filename,path,min_id from files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='" + username + "') f2 WHERE f1.username='" + username + "' and f1.folder_version  = f2.min_id ";
-
-                            List<string>[] files_to_remove = db.Select(query, new List<string>[3],false);
-                            Dictionary<string,string>result = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
-                      .ToDictionary(x => x.k, x => x.v);
-                            string min_id=files_to_remove[2].First();
-                            foreach (KeyValuePair<string, string> row in result)
-                            {
-                                query="select filename,path from files where filename = '"+row.Key+"' and path = '"+row.Value+"' and folder_version>'"+min_id.ToString()+"'";
-                                files_to_remove = db.Select(query, new List<string>[2],false);
-                                if (files_to_remove[0].Count>0)
-                                    remove_dict.Add(files_to_remove[0].First(),files_to_remove[1].First());
-                            }*/
 
                             query = "delete f1 FROM files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='"+username+"') f2 WHERE f1.folder_version  = f2.min_id and f1.username='"+username+"'";
                             db.Delete(query,false);
                         }
                         int new_path = 0;
-
-
                         foreach (var file in sendlist)
                         {
                             //see which path i will have to assign him
@@ -482,92 +548,12 @@ namespace ServerPDS
                         query = "insert into cartelle values('" + (Convert.ToInt32(last_version) + 1).ToString() + "','" + username + "','" + creation_time + "')";
                         db.Insert(query,false);
                     }
-
                     if (files_to_load == true)
                     {
                         if (sendlist.Count > 0)
                         {
-                            //prepare to receive the new files from the client 
-                            string json = JsonConvert.SerializeObject(sendlist.Select(t => t.Item1).ToList());
-                            byte[] credentials = Encoding.UTF8.GetBytes(json);
-                            //send the dimension in order to prepare a coherent buffer in client
-                            byte[] length = Encoding.UTF8.GetBytes(credentials.Length.ToString());
-                            s.Send(length, SocketFlags.None);
-                            byte[] bytes_rec = new Byte[1024];
-                            int response = s.Receive(bytes_rec);
-                            if (response > 0)
-                            {
-                                //before i have to send the length and receive ok
-                                s.Send(credentials, SocketFlags.None);
-                            }
-                            //now let's store these files somewhere
-                            //according to the values stored in the db
-
-
-                           
-                            //then i will only have to delete what must be deleted and to move everything
-                            if (Convert.ToInt32(last_version) >= MyGlobal.num_versions)
-                            {
-                                
-                                //if we already have more than 3 folders store in tmp since it may happen 
-                                //that all the folders already have a file with the same name and i cannot remove the previous 
-                                //if i m not sure that i have finished the transaction
-                                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, "tmp");
-                                if (!Directory.Exists(pathIntoServer))
-                                {
-                                    Directory.CreateDirectory(pathIntoServer);
-                                }
-
-                                foreach (var f in sendlist)
-                                {
-                                    
-                                    string pis = Path.Combine(pathIntoServer, f.Item1);
-                                    string folder = Path.GetDirectoryName(pis);
-                                    if (!Directory.Exists(folder))
-                                    {
-                                        //create the folder
-                                        //TODO: undo of this operation in case of rollback. probably i don t need it
-                                        DirectoryInfo u1 = Directory.CreateDirectory(folder);
-                                    }
-                                    receiveFile(pis);
-                                    msg = Encoding.ASCII.GetBytes("OK");
-                                    s.Send(msg);
-                                }
-                               
-                               
-                            }
-                            else
-                            {
-                                
-
-                                
-                                int i = 0;
-                                foreach (var f in sendlist)
-                                {
-                                    pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(i));
-                                    pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
-                                    string folder = Path.GetDirectoryName(pathIntoServer);
-                                    if (!Directory.Exists(folder))
-                                    {
-                                        //create the folder
-                                        //TODO: undo of this operation in case of rollback. probably i don t need it
-                                        DirectoryInfo u1 = Directory.CreateDirectory(folder);
-                                        Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(folder));
-                                        //at the very end store date into the db
-                                        string creation_time = DateTime.UtcNow.ToString("yyyy-MM-ddTHH\\:mm\\:ss");
-                                    }
-                                    
-                                    receiveFile(pathIntoServer);
-                                    msg = Encoding.ASCII.GetBytes("OK");
-                                    s.Send(msg);
-                                    i = i + 1;
-                                }
-
-                            }
-
+                            receiveFilesForSynch(last_version, userFolderIntoServer, pathIntoServer, new_paths);
                         }
-
-
                     }
                     //nothing in sendlist
                     if (sendlist.Count == 0)
@@ -578,7 +564,6 @@ namespace ServerPDS
                     tran.Commit();
                     committed = true;
                     db.CloseConnection();
-                    
                 }
                 catch (Exception ex)
                 {
@@ -589,55 +574,58 @@ namespace ServerPDS
                 }
                 if (committed == true)
                 {
-                    //now i can remove files 
-                    foreach (KeyValuePair<string, string> entry in remove_dict)
-                    {
-                        string file = Path.Combine(entry.Value, entry.Key);
-                        file = Path.Combine(userFolderIntoServer, file);
-                        File.Delete(file);//TODO: put it into try catch
-                    }
-                    //and move the ones i saved in tmp
-                    int index = 0;
-                    string tmp = Path.Combine(userFolderIntoServer, "tmp");
-                    if (Directory.Exists(tmp))// a check to execute this loop only if i used the tmp
-                    {
-                        foreach (var f in sendlist)
-                        {
-                            pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
-                            pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
-                            string folder = Path.GetDirectoryName(pathIntoServer);
-                            if (!Directory.Exists(folder))
-                            {
-                                DirectoryInfo u1 = Directory.CreateDirectory(folder);
-                            }
-                            //do the actualy cut-paste from tmp
-                  
-                            string tmp_file = Path.Combine(tmp, f.Item1);
-                            if(File.Exists(tmp_file))
-                                System.IO.File.Move(tmp_file, pathIntoServer);
-                            index = index + 1;
-                        }
-                    }
-                   
-                    //problem. i have to handle the view request here, or i will have a view request after 
-                    //the synch. it may be executed before the commit so it will read wrong data
-                    byte[] bytes = new Byte[1024];
-                    //receive the folder to synch
-                    int bytesRec = s.Receive(bytes);
-                    string cmd = Encoding.ASCII.GetString(bytes, 0, bytesRec);
-                    //view request happens only if everything went well in the synch, so only in case of commit
-                    if (String.Compare(cmd.Substring(0, 2), "V:") == 0)
-                    {
-                        view_request();
-                    }
+                    handle_committedSynch(remove_dict,userFolderIntoServer,pathIntoServer,new_paths);
                 }
                 else
                 {
                     string tmp = Path.Combine(userFolderIntoServer, "tmp");
                     if (Directory.Exists(tmp))
                         Directory.Delete(tmp);
+                }               
+            }
+        }
+
+        public void handle_committedSynch(Dictionary<string,string> remove_dict,string userFolderIntoServer,string pathIntoServer,List<string> new_paths)
+        {
+            //now i can remove files 
+            foreach (KeyValuePair<string, string> entry in remove_dict)
+            {
+                string file = Path.Combine(entry.Value, entry.Key);
+                file = Path.Combine(userFolderIntoServer, file);
+                File.Delete(file);//TODO: put it into try catch
+            }
+            //and move the ones i saved in tmp
+            int index = 0;
+            string tmp = Path.Combine(userFolderIntoServer, "tmp");
+            if (Directory.Exists(tmp))// a check to execute this loop only if i used the tmp
+            {
+                foreach (var f in sendlist)
+                {
+                    pathIntoServer = Path.Combine(userFolderIntoServer, new_paths.ElementAt(index));
+                    pathIntoServer = Path.Combine(pathIntoServer, f.Item1);
+                    string folder = Path.GetDirectoryName(pathIntoServer);
+                    if (!Directory.Exists(folder))
+                    {
+                        DirectoryInfo u1 = Directory.CreateDirectory(folder);
+                    }
+                    //do the actualy cut-paste from tmp
+                    string tmp_file = Path.Combine(tmp, f.Item1);
+                    if (File.Exists(tmp_file))
+                        System.IO.File.Move(tmp_file, pathIntoServer);
+                    index = index + 1;
                 }
-                
+            }
+
+            //problem. i have to handle the view request here, or i will have a view request after 
+            //the synch. it may be executed before the commit so it will read wrong data
+            byte[] bytes = new Byte[1024];
+            //receive the folder to synch
+            int bytesRec = s.Receive(bytes);
+            string cmd = Encoding.ASCII.GetString(bytes, 0, bytesRec);
+            //view request happens only if everything went well in the synch, so only in case of commit
+            if (String.Compare(cmd.Substring(0, 2), "V:") == 0)
+            {
+                view_request();
             }
         }
 
