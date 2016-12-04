@@ -129,7 +129,7 @@ namespace ProgettoPDS
                               DateTimeStyles.None, out date))
                 {
                     Console.WriteLine(filename);
-                    other_data = new MenuItem() { Title = filename ,  Icon = this.getIcon(filename,true,false),isDirectory=false };                   
+                    other_data = new MenuItem() { Title = filename };                   
                     continue;
                 }
                 //take the path
@@ -181,7 +181,9 @@ namespace ProgettoPDS
                         {
                             v.folders.Items.Add(root);
                             root = null;
-                            v.folders.Items.Add(other_data);
+                            if(other_data!=null)
+                                v.folders.Items.Add(other_data);
+                            other_data = null;
                         }
                         //first time will not do it, other times yes
                         
@@ -202,7 +204,8 @@ namespace ProgettoPDS
             if (root != null)
                 v.folders.Items.Add(root);
             //for the last time
-            v.folders.Items.Add(other_data); 
+            if(other_data!=null)
+                v.folders.Items.Add(other_data); 
             v.folders.Items.Add(other_root);
             
         }
