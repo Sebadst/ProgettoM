@@ -33,7 +33,7 @@ namespace ProgettoPDS
         Client client;
         string path_to_synch;
         bool path_too_long = false;
-        bool view_error = true;
+        bool view_error = false;
         List<string> items = new List<string>();
 
         private static readonly Object monitor = new Object(); //used here in place of Sleep in order to interrupt it when doing logout
@@ -351,11 +351,12 @@ namespace ProgettoPDS
             catch(SynchronizeException ex)
             {
                 e.Result = -1;
-                this.view_error = true;
+                
             }
             catch (Exception ex)
             {
                 e.Result = -1;
+                this.view_error = true;
             }
         }
 
@@ -394,16 +395,16 @@ namespace ProgettoPDS
             {
                 if(path_too_long)
                 {
-                    message.Content = "Sincronizzazione ok. Alcuni file avevano un percorso troppo lungo e non sono stati trasferiti";
+                    message.Content = "Sincronizzazione ok."+Environment.NewLine+"Alcuni file avevano un percorso troppo lungo e"+Environment.NewLine+ "non sono stati trasferiti";
                 }
                 else if(view_error)
                 {
-                    message.Content = "Sincronizzazione ok. Errore di visualizzazione";
+                    message.Content = "Sincronizzazione ok."+Environment.NewLine+ "Errore di visualizzazione";
 
                 }
                 else
                 {
-                    message.Content = "Errore di connessione al server durante la sincronizzazione";
+                    message.Content = "Errore di connessione al server"+Environment.NewLine+"durante la sincronizzazione";
                 }
             }
             BackgroundWorker worker = new BackgroundWorker();
