@@ -23,12 +23,13 @@
                 <TextBlock FontWeight="Bold" Margin="0,0,0,10">ListBox selection</TextBlock>
                 <Button Name="download_button" Style="{StaticResource MainTemplate}" Click="download_Click">Download</Button>
                 <Button x:Name="choose_folder" Style="{StaticResource MainTemplate}" Content="Cartella di download"  Margin="0,160,0,0" Click="choose_folder_Click"/>
-                <TextBlock x:Name="path" Margin="30,40,30,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="60" Width="204"/>
+                <TextBlock x:Name="path" Margin="30,40,30,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Height="60" Width="204" Foreground="#FFB69595"/>
                 <ProgressBar Height="24" Margin="0,20,0,0" Width="108" IsIndeterminate="True" x:Name="pbar"/>
                 <Label x:Name="message" HorizontalAlignment="Center" Margin="30,14,30,0" VerticalAlignment="Center" Width="204" Height="60" RenderTransformOrigin="0.551,1.379" Foreground="#FFB69595"/>
-                <Label HorizontalAlignment="Center" Content="           Intervallo di sincronizzazione in minuti:" VerticalAlignment="Center" Width="251" Height="29" RenderTransformOrigin="0.551,1.379" Foreground="Black"/>
+                <Label HorizontalAlignment="Center" Foreground="#FFB69595" Content="           Intervallo di sincronizzazione in minuti:" VerticalAlignment="Center" Width="251" Height="29" RenderTransformOrigin="0.551,1.379" />
                 <wpfTool:IntegerUpDown Value="1" Increment="1" Minimum="1" Maximum="300" Name="interval" Width="93" />
                 <Button Style="{StaticResource MainTemplate}" Content="Set" Click="set_interval" x:Name="interval_button" HorizontalAlignment="Center" Margin="0,20,0,10" VerticalAlignment="Center" RenderTransformOrigin="0.507,1.65" Background="#FFDDDDDD" Cursor="None" BorderThickness="1" Width="94" />
+                <Button Style="{StaticResource MainTemplate}" Content="Logout" Click="logout" x:Name="logout_button" HorizontalAlignment="Center" Margin="0,20,0,10" VerticalAlignment="Center" RenderTransformOrigin="0.507,1.65" Background="#FFDDDDDD" Cursor="None" BorderThickness="1" Width="94" />
 
             </StackPanel>
             <TreeView Name="folders" x:FieldModifier="public">

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       
         mc:Ignorable="d"
-        Title="MyApp    Login" Height="381" Width="525" MinHeight="350" MinWidth="525" Background="#FF745959">
+        Title="MyApp    Login" Height="381" Width="525" MinHeight="381" MinWidth="525" Background="#FF745959">
     <Grid >
         <Grid.Background>
             <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">

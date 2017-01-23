@@ -35,6 +35,11 @@ namespace ProgettoPDS
         bool path_too_long = false;
         bool view_error = true;
         List<string> items = new List<string>();
+
+        private static readonly Object monitor = new Object(); //used here in place of Sleep in order to interrupt it when doing logout
+        private static readonly Object pbar_monitor = new Object(); //used to access the pbar from the main thread and the background
+
+        bool must_logout = false;
         public ViewFolder(Client client,string path)
         {
             /*
@@ -94,8 +99,12 @@ namespace ProgettoPDS
                 //here I will call the periodic method
                 var dueTime = TimeSpan.FromMinutes(1);
                 var interval = TimeSpan.FromMinutes(1);
-                pbar.IsIndeterminate = false;
-                pbar.Visibility = Visibility.Hidden;
+                lock (pbar_monitor) // I think i should put it as a best practice
+                {
+                    pbar.IsIndeterminate = false;
+                    pbar.Visibility = Visibility.Hidden;
+                }
+                
                 periodicSynchronization(dueTime, interval, CancellationToken.None);
             }
             else
@@ -257,16 +266,20 @@ namespace ProgettoPDS
                     if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
                                     DateTimeStyles.None, out date))
                         return;
-                    if (pbar.Visibility == Visibility.Hidden)
+                    lock (pbar_monitor)
                     {
-                        client.connect_to_server();
-                        client.download_file(f, this.path.Text);
-                        message.Content = "File scaricato correttamente";//possibility of file not present : I will print just errore di connessione
+                        if (pbar.Visibility == Visibility.Hidden)
+                        {
+                            client.connect_to_server();
+                            client.download_file(f, this.path.Text);
+                            message.Content = "File scaricato correttamente";//possibility of file not present : I will print just errore di connessione
+                        }
+                        else
+                        {
+                            message.Content = "Sincronizzazione in corso. Attendere la fine e riprovare il download";
+                        }
                     }
-                    else
-                    {
-                        message.Content = "Sincronizzazione in corso. Attendere la fine e riprovare il download";
-                    }
+                    
                 }
                 catch (Exception ex)
                 {
@@ -306,13 +319,29 @@ namespace ProgettoPDS
             {
                 this.path_too_long = false;
                 var interval = TimeSpan.FromMinutes(MyGlobalClient.minutes_for_synch);
-                Thread.Sleep(interval);
-                int result = 0; // used for the worker result
-                var arg = (arguments)e.Argument; // to access elements ui from this thread
-                (sender as BackgroundWorker).ReportProgress(0); //start pbar
-                client.connect_to_server();
-                client.synchronize(arg.path);
-                e.Result = result;
+                //Thread.Sleep(interval);
+                lock (monitor)
+                {
+                    if (must_logout)
+                    {
+                        return;
+                    }
+                    Monitor.Wait(monitor, interval);
+                    if (must_logout)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        int result = 0; // used for the worker result
+                        var arg = (arguments)e.Argument; // to access elements ui from this thread
+                        (sender as BackgroundWorker).ReportProgress(0); //start pbar
+                        client.connect_to_server();
+                        client.synchronize(arg.path);
+                        e.Result = result;
+                    }
+                }
+                
             }
             catch (PathTooLongException ex)
             {
@@ -335,8 +364,12 @@ namespace ProgettoPDS
             if (e.UserState == null)
             {
                 message.Content = "";
-                pbar.Visibility = Visibility.Visible;
-                pbar.IsIndeterminate = true;   
+                lock(pbar_monitor)
+                {
+                    pbar.Visibility = Visibility.Visible;
+                    pbar.IsIndeterminate = true;   
+                }
+                
             }
         }
 
@@ -345,7 +378,14 @@ namespace ProgettoPDS
             /*
              * when synchronization ends, restart the timeout for next synchronization
              */
-            pbar.Visibility = Visibility.Hidden;
+            lock (pbar_monitor)
+            {
+                pbar.Visibility = Visibility.Hidden;
+            }
+            if (e.Result == null)
+            {
+                return;
+            }
             if ((int)e.Result != -1)
             {
                 message.Content = "Sincronizzazione ok.";
@@ -388,6 +428,30 @@ namespace ProgettoPDS
             {
                 this.message.Content = "Inserisci un val tra 1 e 300";
             }
+        }
+
+        private void logout(object sender, RoutedEventArgs e)
+        {
+            lock (pbar_monitor) //used to avoid that I read that is hidden and immediately after it becomes visible from the backgroundworker
+            {
+                if (pbar.Visibility == Visibility.Hidden)
+                {
+                    lock (monitor)
+                    {
+                        //this is used to stop the thread that was sleeping avoiding him to spawn a backgroundworker
+                        must_logout = true;
+                        Monitor.Pulse(monitor);
+                    }
+                    MainWindow window = new MainWindow();
+                    window.Show();
+                    this.Close();
+                }
+                else
+                {
+                    message.Content = "C'è un'operazione in corso. Attendere la fine e riprovare il logout";
+                }
+            }
+            
         }
         
 
