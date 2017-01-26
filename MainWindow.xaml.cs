@@ -24,12 +24,14 @@ namespace ProgettoPDS
         public MainWindow()
         {
             InitializeComponent();
+            this.check_folders();
         }
         
         public MainWindow(string message)
         {
             InitializeComponent();
-            this.message.Content = message;    
+            this.message.Content = message;
+            this.check_folders();
         }
 
         private void signup_Click(object sender, RoutedEventArgs e)
@@ -91,6 +93,21 @@ namespace ProgettoPDS
                     message.Content = "Nessuna risposta dal server";
                 }
             }   
+        }
+
+
+        //create the necessary folder defined on MyglobalClient.cs
+        private void check_folders()
+        {
+            if (! System.IO.Directory.Exists(MyGlobalClient.downloadDirectory))
+            {
+                System.IO.Directory.CreateDirectory(MyGlobalClient.downloadDirectory);
+            }
+
+            if (!System.IO.Directory.Exists(MyGlobalClient.zipDirectory))
+            {
+                System.IO.Directory.CreateDirectory(MyGlobalClient.zipDirectory);
+            }
         }
     }
 }
