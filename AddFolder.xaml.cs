@@ -155,6 +155,7 @@ namespace ProgettoPDS
             /*
              * called when the user click the load_folder button
              */
+            //TODO: there is a problem if the first load click is not good, because also the following will not be good, fix it
             if (path.Text != "")
             {
                 //  zip the file

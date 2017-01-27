@@ -109,7 +109,7 @@ namespace ProgettoPDS
             }
             else
             {
-                message.Content="errore di connessione col server. per favore chiudere e riaprire l'app";
+                message.Content="errore di connessione col server."+Environment.NewLine+"per favore chiudere e riaprire l'app";
             }
         }
        
@@ -276,18 +276,18 @@ namespace ProgettoPDS
                         }
                         else
                         {
-                            message.Content = "Sincronizzazione in corso. Attendere la fine e riprovare il download";
+                            message.Content = "Sincronizzazione in corso."+Environment.NewLine+"Attendere la fine e riprovare il download";
                         }
                     }
                     
                 }
                 catch (Exception ex)
                 {
-                    message.Content = "Errore di connessione al server nel download";
+                    message.Content = "Errore di connessione al server"+Environment.NewLine+"nel download";
                 }
             else
             {
-                message.Content = "Scegli in quale cartella vuoi scaricare il file";
+                message.Content = "Scegli in quale cartella"+Environment.NewLine+"vuoi scaricare il file";
             }
         }
 
@@ -309,7 +309,7 @@ namespace ProgettoPDS
             }
             catch (Exception ex)
             {
-                message.Content = "Errore di connessione al server durante la sincronizzazione";
+                message.Content = "Errore di connessione al server"+Environment.NewLine+"durante la sincronizzazione";
             }   
         }
 
@@ -449,7 +449,7 @@ namespace ProgettoPDS
                 }
                 else
                 {
-                    message.Content = "C'è un'operazione in corso. Attendere la fine e riprovare il logout";
+                    message.Content = "C'è un'operazione in corso."+Environment.NewLine+"Attendere la fine e riprovare il logout";
                 }
             }
             

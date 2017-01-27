@@ -31,7 +31,7 @@ namespace ServerPDS
         List<string> view_list = new List<string>();
         List<string> copylist = new List<string>();
         List<Tuple<string,string>> sendlist = new List<Tuple<string,string>>();
-
+        //in each place where we contact the db we have to put a try catch
         public Logger(Socket sock, string username, string password, BlockingCollection<string> ac)
         {
             this.s = sock;
@@ -52,21 +52,29 @@ namespace ServerPDS
             //recover the name of folder that user wants to synch
             //path to sync in format WITH c:
             //recover the root of the user into the server
-            string query = "select count(*) from cartelle where username='" + username + "'";
-            int count = db.Count(query);
-            if (count>0)
+            try
             {
-                query = "select * from utenti where username='" + username + "'";
-                string to_send = db.Select(query,new List<string>[3]).ElementAt(2).First();
-                byte[] msg = Encoding.ASCII.GetBytes(to_send);
-                s.Send(msg);
+                string query = "select count(*) from cartelle where username='" + username + "'";
+                int count = db.Count(query);
+                if (count > 0)
+                {
+                    query = "select * from utenti where username='" + username + "'";
+                    string to_send = db.Select(query, new List<string>[3]).ElementAt(2).First();
+                    byte[] msg = Encoding.ASCII.GetBytes(to_send);
+                    s.Send(msg);
+                }
+                else
+                {
+                    byte[] msg = Encoding.ASCII.GetBytes("NULL");
+                    s.Send(msg);
+                }
+                Console.WriteLine("Risposta al comando ask inviata");
             }
-            else
+            catch
             {
-                byte[] msg = Encoding.ASCII.GetBytes("NULL");
-                s.Send(msg);
+                return;
             }
-            Console.WriteLine("Risposta al comando ask inviata");
+            
         }
 
         public void view_request()
@@ -78,51 +86,59 @@ namespace ServerPDS
             //string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
             string json = null;
             string query = "select min(folder_version) from files where username='" + username + "'";
-            int min_version= Convert.ToInt32(db.Select(query, new List<string>[1]).ElementAt(0).First());
+            try
+            {
+                int min_version = Convert.ToInt32(db.Select(query, new List<string>[1]).ElementAt(0).First());
+
+                for (int i = min_version; i <= MyGlobal.num_versions + min_version; i++)
+                {
+                    query = "select filename from files where username='" + username + "' and folder_version='" + i.ToString() + "'";
+                    List<string> filenames = db.Select(query, new List<string>[1]).ElementAt(0);
+                    if (filenames.Count == 0)
+                    {
+                        break;
+                    }
+                    if (i == min_version)
+                    {
+                        view_list.Clear();
+                    }
+                    query = "select data from cartelle where username='" + username + "' and versione ='" + i + "'";//TODO: check if i should leave it like this or between 1 and 3, according to what i show to the user
+
+                    string date = db.Select(query, new List<string>[1]).ElementAt(0).First();
+                    string formatted_date = date.Substring(6, 4) + date.Substring(3, 2) + date.Substring(0, 2) + "-" + date.Substring(11, 2) + date.Substring(14, 2);
+
+                    view_list.Add(formatted_date);
+                    //SORT ACCORDING TO NUMBER OF SEPARATORS. WITHOUT THIS, THE VIEW DOES NOT WORK IN CLIENT
+                    var sorted_filenames = filenames.OrderBy(
+        p => p.Count(c => c == Path.DirectorySeparatorChar
+            || c == Path.AltDirectorySeparatorChar));
+                    foreach (var el in sorted_filenames)
+                    {
+                        view_list.Add(Path.Combine(i.ToString(), el));
+
+                    }
+
+                }
+                //finally send the json
+                json = JsonConvert.SerializeObject(view_list);
+                byte[] credentials = Encoding.UTF8.GetBytes(json);
+                //send the dimension in order to prepare a coherent buffer in client
+                byte[] length = Encoding.UTF8.GetBytes(credentials.Length.ToString());
+                s.Send(length, SocketFlags.None);
+                //receive ok
+                byte[] bytes_rec = new Byte[1024];
+                int response = s.Receive(bytes_rec);
+                if (response > 0)
+                {
+                    //send file
+                    s.Send(credentials, SocketFlags.None);
+                }
+            }
+            catch
+            {
+                return;
+            }
             
-            for (int i = min_version; i <= MyGlobal.num_versions+min_version; i++)
-            {
-                query = "select filename from files where username='" + username + "' and folder_version='"+i.ToString()+"'";
-                List<string> filenames=db.Select(query,new List<string>[1]).ElementAt(0);
-                if (filenames.Count==0)
-                {
-                    break;
-                }
-                if (i == min_version)
-                {
-                    view_list.Clear();
-                }
-                query = "select data from cartelle where username='" + username + "' and versione ='" + i + "'";//TODO: check if i should leave it like this or between 1 and 3, according to what i show to the user
-
-                string date = db.Select(query, new List<string>[1]).ElementAt(0).First();
-                string formatted_date = date.Substring(6, 4) + date.Substring(3, 2) + date.Substring(0, 2) + "-" + date.Substring(11, 2) + date.Substring(14, 2);
-
-                view_list.Add(formatted_date);
-                //SORT ACCORDING TO NUMBER OF SEPARATORS. WITHOUT THIS, THE VIEW DOES NOT WORK IN CLIENT
-                var sorted_filenames = filenames.OrderBy(
-    p => p.Count(c => c == Path.DirectorySeparatorChar
-        || c == Path.AltDirectorySeparatorChar));
-                foreach (var el  in  sorted_filenames)
-                {
-                    view_list.Add(Path.Combine(i.ToString(), el));
-
-                }
-                
-            }
-            //finally send the json
-            json = JsonConvert.SerializeObject(view_list);
-            byte[] credentials = Encoding.UTF8.GetBytes(json);
-            //send the dimension in order to prepare a coherent buffer in client
-            byte[] length = Encoding.UTF8.GetBytes(credentials.Length.ToString());
-            s.Send(length, SocketFlags.None);
-            //receive ok
-            byte[] bytes_rec = new Byte[1024];
-            int response = s.Receive(bytes_rec);
-            if (response > 0)
-            {
-                //send file
-                s.Send(credentials, SocketFlags.None);
-            }
         }
 
         public void synchronize_request(string[] words)
@@ -138,22 +154,30 @@ namespace ServerPDS
             string userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
             ///userFolderIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
             string pathIntoServer;
-            userFolderIntoServer = db.Select("SELECT MAX(FOLDER_VERSION) FROM FILES WHERE USERNAME='" + username + "'", new List<string>[1]).ElementAt(0).First();
-            if (userFolderIntoServer !="")
-            {            
-                pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
-                sincronizzaFiles(pathIntoServer,userFolderIntoServer);
-            }
-            else
+            try
             {
-                //if is first synch
-                userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
-                userFolderIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
-                pathIntoServer = userFolderIntoServer + pathIntoClient;//System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);//for some weird reason combine does not work
+                userFolderIntoServer = db.Select("SELECT MAX(FOLDER_VERSION) FROM FILES WHERE USERNAME='" + username + "'", new List<string>[1]).ElementAt(0).First();
+                if (userFolderIntoServer != "")
+                {
+                    pathIntoServer = System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);
+                    sincronizzaFiles(pathIntoServer, userFolderIntoServer);
+                }
+                else
+                {
+                    //if is first synch
+                    userFolderIntoServer = System.IO.Path.Combine(MyGlobal.rootFolder, username);
+                    userFolderIntoServer = System.IO.Path.Combine(userFolderIntoServer, "1");
+                    pathIntoServer = userFolderIntoServer + pathIntoClient;//System.IO.Path.Combine(userFolderIntoServer, pathIntoClient);//for some weird reason combine does not work
 
-                sincronizzaDirectory(disk,pathIntoClient, pathIntoServer);
+                    sincronizzaDirectory(disk, pathIntoClient, pathIntoServer);
+                }
+                Console.WriteLine("sincronizzazione Finita");
             }
-            Console.WriteLine("sincronizzazione Finita");
+            catch
+            {
+                return;
+            }
+            
         }
 
         public void download_request(string cmd)
@@ -174,20 +198,28 @@ namespace ServerPDS
             string folder_version=to_download.Substring(0,intLocation);
             string filename=to_download.Substring(intLocation+1,to_download.Length-(intLocation+2)+1);
             string query = "select path from files where username='"+username+"' and folder_version='"+folder_version+"' and filename='"+filename.Replace(@"\", @"\\").Replace("'", @"\'")+"'";
-            string path=db.Select(query,new List<string>[1]).ElementAt(0).First();
-            
-            
-            if (path!="")
+            try
             {
-                path = Path.Combine(userFolderIntoServer, path);
-                to_download = Path.Combine(path, filename);
-                wrap_send_file(to_download);
+                string path = db.Select(query, new List<string>[1]).ElementAt(0).First();
+
+
+                if (path != "")
+                {
+                    path = Path.Combine(userFolderIntoServer, path);
+                    to_download = Path.Combine(path, filename);
+                    wrap_send_file(to_download);
+                }
+                else
+                {
+                    byte[] msg = Encoding.ASCII.GetBytes("E. not present");
+                    s.Send(msg);
+                }
             }
-            else
+            catch
             {
-                byte[] msg = Encoding.ASCII.GetBytes("E. not present");
-                s.Send(msg);
+                return;
             }
+            
         }
 
         public void GestoreClient()
@@ -329,7 +361,7 @@ namespace ServerPDS
                     //send the last ok to client
                     msg = Encoding.ASCII.GetBytes("OK");
                     s.Send(msg);
-                    s.Close();
+                    //s.Close();
                     Console.WriteLine("Sessione terminata");
                     tran.Commit();
                     db.CloseConnection();
@@ -339,7 +371,7 @@ namespace ServerPDS
                     tran.Rollback();
                     db.CloseConnection();
                     Console.WriteLine(e.StackTrace);
-                    s.Close();
+                    //s.Close();
                     if (File.Exists(username+".zip"))
                     {
                         File.Delete(username+".zip");
@@ -349,7 +381,6 @@ namespace ServerPDS
                         DeleteDirectory(pis);
                     }
                     Console.WriteLine("Sessione terminata");
-                    //TODO: remove also the file (zip if is present, folder if is present)
                     return;
                 }
             }
@@ -746,34 +777,42 @@ namespace ServerPDS
         private void action()
         {
             string query = "select count(*) from utenti where username = " + "'" + username + "'";
-            if (db.Count(query) > 0)//utente esistente
+            try
             {
-                query = "select count(*) from utenti where username = " + "'" + username + "'" + "and password = " + "'" + Register.HashPassword(password) + "'";
-                if (db.Count(query) > 0)//password corretta
+                if (db.Count(query) > 0)//utente esistente
                 {
-                    //invio OK
-                    byte[] msg = Encoding.ASCII.GetBytes("OK");
-                    s.Send(msg);
-                    //Console.WriteLine("utente loggato con chiave: "+chiave);
-                    Console.WriteLine("utente loggato ip: " + s.RemoteEndPoint);
-                    GestoreClient();
+                    query = "select count(*) from utenti where username = " + "'" + username + "'" + "and password = " + "'" + Register.HashPassword(password) + "'";
+                    if (db.Count(query) > 0)//password corretta
+                    {
+                        //invio OK
+                        byte[] msg = Encoding.ASCII.GetBytes("OK");
+                        s.Send(msg);
+                        //Console.WriteLine("utente loggato con chiave: "+chiave);
+                        Console.WriteLine("utente loggato ip: " + s.RemoteEndPoint);
+                        GestoreClient();
+                    }
+                    else
+                    {
+                        byte[] msg = Encoding.ASCII.GetBytes("E.password errata!");
+                        s.Send(msg);
+                        s.Shutdown(SocketShutdown.Both);
+                        s.Close();
+                        Console.WriteLine("E.password errata!");
+                    }
                 }
                 else
                 {
-                    byte[] msg = Encoding.ASCII.GetBytes("E.password errata!");
+                    byte[] msg = Encoding.ASCII.GetBytes("E.inesistente/password errata, registrati!");
                     s.Send(msg);
                     s.Shutdown(SocketShutdown.Both);
                     s.Close();
-                    Console.WriteLine("E.password errata!");
+                    Console.WriteLine("E.inesistente, registrati!");
                 }
             }
-            else
+            catch
             {
-                byte[] msg = Encoding.ASCII.GetBytes("E.inesistente/password errata, registrati!");
-                s.Send(msg);
-                s.Shutdown(SocketShutdown.Both);
                 s.Close();
-                Console.WriteLine("E.inesistente, registrati!");
+                return;
             }
             //initialize everything again
             dictionary = new Dictionary<string, string>();
