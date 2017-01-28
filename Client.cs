@@ -40,6 +40,14 @@ namespace ProgettoPDS
             get;
             set;
         }
+        public string Password
+        {
+            get
+            {
+                return password;
+            }
+            
+        }
        
         public int receive(){
             /*

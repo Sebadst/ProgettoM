@@ -26,6 +26,7 @@ namespace ProgettoPDS
     public partial class AddFolder : Window
     {
         Client client;
+        bool redo_login = false;
         public AddFolder(Client client)
         {
             InitializeComponent();
@@ -97,6 +98,13 @@ namespace ProgettoPDS
                     File.Delete(zipPath);
                 }
                 ZipFile.CreateFromDirectory(arg.path, zipPath);
+                //check if there was a problem before. in this case open a new socket and do login before
+                if (redo_login)
+                {
+                    
+                    client.connect_to_server();
+                    int login = client.login(client.username, client.Password);
+                }
                 //send the zip file
                 client.send_zip(arg.path, zipPath);    
                 //check if it exists just as best practice, but normally it exists
@@ -142,6 +150,7 @@ namespace ProgettoPDS
                         message.Content = "Errore, server non raggiungibile";
                     else if ((int)e.Result == -2)
                         message.Content = "Alcuni files hanno un percorso troppo lungo, cambiare e riprovare";
+                    redo_login = true;
                 }
             }
             catch (Exception ex)
