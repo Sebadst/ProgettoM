@@ -256,9 +256,11 @@ namespace ProgettoPDS
             try
             {
                 StreamWriter sWriter = new StreamWriter(tcpclnt.GetStream()); //first chance exception system.io.ioexception
-                byte[] bytes = File.ReadAllBytes(file);
-                Console.WriteLine(bytes.Length.ToString());
-                sWriter.WriteLine(bytes.Length.ToString());
+                //byte[] bytes = File.ReadAllBytes(file);
+                
+                
+                //Console.WriteLine(bytes.Length.ToString());
+                sWriter.WriteLine(new System.IO.FileInfo(file).Length.ToString());
                 sWriter.Flush();
                 //receive OK
                 int response = receive();
