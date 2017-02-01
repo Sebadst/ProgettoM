@@ -298,7 +298,7 @@ namespace ProgettoPDS
                 bytesRead = tcpclnt.Client.Receive(buffer);
                 string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                 int length = Convert.ToInt32(cmdFileSize);
-                buffer = new byte[length];
+                buffer = new byte[1048576];
                 byte[] credentials = Encoding.UTF8.GetBytes("OK");
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
 

@@ -316,10 +316,11 @@ namespace ServerPDS
                     int bytesRead;
                     //read the length
                     bytesRead = s.Receive(buffer);
+                    Console.WriteLine(bytesRead.ToString());
                     string cmdFileSize = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                     int length = Convert.ToInt32(cmdFileSize);
                     s.Send(msg);
-                    buffer = new byte[length];
+                    buffer = new byte[1048576];
                     int received = 0;
                     while (received < length)
                     {
