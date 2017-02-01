@@ -28,7 +28,7 @@ namespace ProgettoPDS
         private Dictionary<string, string> file_hash = new Dictionary<string, string>();
         bool path_too_long = false;
         public Client(string username, string password){
-            this.ipAddress = "192.168.1.100";
+            this.ipAddress = "192.168.0.1";
             //this.ipAddress = "10.30.216.191";
             this.port = 11000;
             this.username = username;
