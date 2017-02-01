@@ -838,9 +838,9 @@ namespace ServerPDS
             try
             {
                 StreamWriter sWriter = new StreamWriter(new NetworkStream(s)); //first chance exception system.io.ioexception        
-                byte[] bytes = File.ReadAllBytes(file);
-                Console.WriteLine(bytes.Length.ToString());
-                sWriter.WriteLine(bytes.Length.ToString());
+                //byte[] bytes = File.ReadAllBytes(file);
+                //Console.WriteLine(bytes.Length.ToString());
+                sWriter.WriteLine(new System.IO.FileInfo(file).Length.ToString());
                 sWriter.Flush();
                 //it has to receive ok, like the client version
                 byte[] bytes_rec = new Byte[1024];
