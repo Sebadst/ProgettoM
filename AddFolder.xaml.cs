@@ -170,30 +170,30 @@ namespace ProgettoPDS
                 //  zip the file
                 string startPath = @path.Text;
                 //check dimension<1gb
-                if (client.dirSize(new DirectoryInfo(startPath)) > MyGlobalClient.folder_max_dim)
+                //if (client.dirSize(new DirectoryInfo(startPath)) > MyGlobalClient.folder_max_dim)
+                //{
+                  //  message.Content = "Non e' possibile caricare cartelle di dimensioni maggiori di 1 GB";
+                //}
+                //else
+                //7{
+                try
                 {
-                    message.Content = "Non e' possibile caricare cartelle di dimensioni maggiori di 1 GB";
+                    //asynchronous logic
+                    BackgroundWorker worker = new BackgroundWorker();
+                    worker.WorkerReportsProgress = true;
+                    worker.DoWork += worker_DoWork;
+                    worker.ProgressChanged += worker_ProgressChanged;
+                    worker.RunWorkerCompleted += worker_RunWorkerCompleted;
+                    var arg = new arguments() { path = startPath };
+                    worker.RunWorkerAsync(arg);
                 }
-                else
+                catch (Exception exc)
                 {
-                    try
-                    {
-                        //asynchronous logic
-                        BackgroundWorker worker = new BackgroundWorker();
-                        worker.WorkerReportsProgress = true;
-                        worker.DoWork += worker_DoWork;
-                        worker.ProgressChanged += worker_ProgressChanged;
-                        worker.RunWorkerCompleted += worker_RunWorkerCompleted;
-                        var arg = new arguments() { path = startPath };
-                        worker.RunWorkerAsync(arg);
-                    }
-                    catch (Exception exc)
-                    {
-                        Console.WriteLine(exc.StackTrace);
-                        message.Content = "Errore, impossibile contattare il server";
-                    }
+                    Console.WriteLine(exc.StackTrace);
+                    message.Content = "Errore, impossibile contattare il server";
+                }
                     
-                }
+                //}
             }
    
         }
