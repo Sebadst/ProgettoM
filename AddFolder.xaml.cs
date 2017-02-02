@@ -164,18 +164,17 @@ namespace ProgettoPDS
             /*
              * called when the user click the load_folder button
              */
-            //TODO: there is a problem if the first load click is not good, because also the following will not be good, fix it
             if (path.Text != "")
             {
                 //  zip the file
                 string startPath = @path.Text;
                 //check dimension<1gb
-                if (client.dirSize(new DirectoryInfo(startPath)) > MyGlobalClient.folder_max_dim)
+               /* if (client.dirSize(new DirectoryInfo(startPath)) > MyGlobalClient.folder_max_dim)
                 {
                     message.Content = "Non e' possibile caricare cartelle di dimensioni maggiori di 1 GB";
                 }
                 else
-                {
+                {*/
                     try
                     {
                         //asynchronous logic
@@ -193,7 +192,7 @@ namespace ProgettoPDS
                         message.Content = "Errore, impossibile contattare il server";
                     }
                     
-                }
+                //}
             }
    
         }
