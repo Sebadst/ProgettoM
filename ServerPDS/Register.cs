@@ -44,6 +44,13 @@ namespace ServerPDS
         }
         private void action()
         {
+            if(username.Length > 50 || username.Contains("\\") || username.Contains("/") || username.Contains(" "))
+            {
+                s.Shutdown(SocketShutdown.Both);
+                s.Close();
+                Console.WriteLine("Username non valido");
+                return;
+            }
             string query = "select count(*) from utenti where username = " + "'" + username + "'";
             if (db.Count(query) <= 0)
             {
