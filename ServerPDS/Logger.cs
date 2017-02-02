@@ -200,19 +200,23 @@ namespace ServerPDS
             string query = "select path from files where username='"+username+"' and folder_version='"+folder_version+"' and filename='"+filename.Replace(@"\", @"\\").Replace("'", @"\'")+"'";
             try
             {
-                string path = db.Select(query, new List<string>[1]).ElementAt(0).First();
+                List<string>[] pathtmp = db.Select(query, new List<string>[1]);
 
-
-                if (path != "")
+                if(pathtmp[0].Count != 0)
                 {
-                    path = Path.Combine(userFolderIntoServer, path);
-                    to_download = Path.Combine(path, filename);
-                    wrap_send_file(to_download);
+                    string path = pathtmp.ElementAt(0).First();
+                    if (path != "")
+                    {
+                        path = Path.Combine(userFolderIntoServer, path);
+                        to_download = Path.Combine(path, filename);
+                        wrap_send_file(to_download);
+                    }
                 }
-                else
+                else //could be an entire directory 
                 {
-                    byte[] msg = Encoding.ASCII.GetBytes("E. not present");
-                    s.Send(msg);
+                    //byte[] msg = Encoding.ASCII.GetBytes("E. not present");
+                    //s.Send(msg);
+                    wrap_send_directory(username, folder_version, filename);
                 }
             }
             catch
@@ -822,11 +826,57 @@ namespace ServerPDS
             sendlist = new List<Tuple<string,string>>();
         }
 
-        public void wrap_send_directory(string directory)
+        public void wrap_send_directory(string username, string folder_version, string directory)
         {
             //  ZIP THE FILE
             string startPath = directory;
             string zipPath = MyGlobal.rootFolder + "\\" + username + ".zip";
+            string tmpzip = Path.Combine(Path.Combine(MyGlobal.rootFolder, username), "tmpzip");
+            string query = "SELECT filename, path FROM files WHERE username='" + username + "'and folder_version='" + folder_version + "'and filename LIKE '" + directory.Replace(@"\", @"\\\\").Replace(@"'", @"\'") + "%'";
+
+            try
+            {
+                //create a temporary folder
+                if (Directory.Exists(tmpzip))
+                {
+                    DeleteDirectory(tmpzip);
+                }
+                Directory.CreateDirectory(tmpzip);
+
+                //select all the file's path
+                List<string>[] files = db.Select(query, new List<string>[2]);
+
+                //copy the files into the temporary directory
+                for(int entry = 0; entry < files[0].Count; entry++)
+                {
+                    //create the subdirectories
+                    string tmpdirtocreate = Path.GetDirectoryName(files[0][entry]);
+                    Directory.CreateDirectory(Path.Combine(tmpzip, tmpdirtocreate));
+
+                    //copy the files
+                    System.IO.File.Copy(
+                        Path.Combine(Path.Combine(Path.Combine(MyGlobal.rootFolder, username), files[1][entry]), files[0][entry]),
+                        Path.Combine(tmpzip, files[0][entry])
+                    );
+                }
+
+                //remouve old file zip
+                if(File.Exists(tmpzip + ".zip")){
+                    File.Delete(tmpzip + ".zip");
+                }
+
+                // create new zip
+                ZipFile.CreateFromDirectory(tmpzip, tmpzip + ".zip");
+
+                //send the file
+                wrap_send_file(tmpzip + ".zip");
+
+
+            }
+            catch
+            {
+                throw;
+            }
             // string extractPath = @"C:\Users\sds\Desktop\progetto";
             ZipFile.CreateFromDirectory(startPath, zipPath);
             wrap_send_file(zipPath);

@@ -251,11 +251,11 @@ namespace ProgettoPDS
                     message.Content = "";
                     try
                     {
-                        if ((folders.SelectedItem as MenuItem).isDirectory == true)
+                       /*if ((folders.SelectedItem as MenuItem).isDirectory == true)
                         {
                             message.Content = "Puoi scaricare solo files, non cartelle";
                             return;
-                        }
+                        }*/
                         f = (folders.SelectedItem as MenuItem).Title;
                     }
                     catch
