@@ -38,6 +38,10 @@ namespace ProgettoPDS
                 message.Content = "password diversa da ripeti password";
             else if (username.Text.Contains(".") || password.Password.Contains("."))
                 message.Content = "I campi non possono contenere '.'";
+            else if (username.Text.Contains("\\") || username.Text.Contains("/"))
+                message.Content = "I campi non possono contenere char speciali";
+            else if (username.Text.Length > 50)
+                message.Content = "Dimensione massima username 50 char";
             else
             {
                 message.Content = "Ok";
