@@ -560,7 +560,7 @@ namespace ProgettoPDS
             return size;
         }
 
-        public void download_file(String f,String download_folder)
+        public void download_file(String f,String download_folder,bool isDirectory)
         {
             /*
              * send download request. D:filename
@@ -573,8 +573,8 @@ namespace ProgettoPDS
                 }
                 byte[] credentials = Encoding.UTF8.GetBytes("D:" + f);
                 tcpclnt.Client.Send(credentials, SocketFlags.None);
-                var ext = System.IO.Path.GetExtension(f);
-                if (ext == String.Empty)
+                //var ext = System.IO.Path.GetExtension(f);
+                if (isDirectory)
                 {
                     //It's a directory
                     wrap_recv_zipfile(f,download_folder);

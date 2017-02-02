@@ -245,17 +245,17 @@ namespace ProgettoPDS
             string[] format = { "yyyyMMdd-HHmm" };
             DateTime date;
             String f;
+            bool isDirectory = false;
             if (this.path.Text!= "")
                 try
                 {
                     message.Content = "";
                     try
                     {
-                        /*if ((folders.SelectedItem as MenuItem).isDirectory == true)
+                        if ((folders.SelectedItem as MenuItem).isDirectory == true)
                         {
-                            message.Content = "Puoi scaricare solo files, non cartelle";
-                            return;
-                        }*/
+                            isDirectory = true;
+                        }
                         f = (folders.SelectedItem as MenuItem).Title;
                     }
                     catch
@@ -276,7 +276,7 @@ namespace ProgettoPDS
                             worker.DoWork += download_DoWork;
                             worker.ProgressChanged += worker_ProgressChanged;
                             worker.RunWorkerCompleted += download_RunWorkerCompleted;
-                            var arg = new download_arguments() { file = f, path = this.path.Text };
+                            var arg = new download_arguments() { file = f, path = this.path.Text, isDirectory=isDirectory };
                             worker.RunWorkerAsync(arg);
 
 
@@ -488,7 +488,7 @@ namespace ProgettoPDS
                 var arg = (download_arguments)e.Argument; // to access elements ui from this thread
                 (sender as BackgroundWorker).ReportProgress(0); //start pbar
                 client.connect_to_server();
-                client.download_file(arg.file, arg.path);
+                client.download_file(arg.file, arg.path,arg.isDirectory);
                 e.Result = 1;
             }           
             catch (Exception ex)
@@ -663,5 +663,6 @@ namespace ProgettoPDS
     {
         public string file;
         public string path;
+        public bool isDirectory;
     }
 }
