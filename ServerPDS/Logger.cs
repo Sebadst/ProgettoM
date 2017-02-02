@@ -354,6 +354,7 @@ namespace ServerPDS
                     Console.WriteLine("file estratto");
                     //store also the files    
                     Dictionary<string,string> files_to_store=new Dictionary<string,string>();
+                    //create the hash for each file to store <pathFile, hash>
                     this.browse_folder(pis,files_to_store);
                     foreach (KeyValuePair<string, string> entry in files_to_store)
                     {
@@ -390,9 +391,12 @@ namespace ServerPDS
                 }
             }
         }
+
         public void fill_lists()
         {
-            /*fill copylist and sendlist in synchronization*/
+            /*fill copylist and sendlist in synchronization
+              file hash is the one sent by the client
+             */
             foreach (var line in file_hash)
             {
                 string key = line.Key;
@@ -549,7 +553,6 @@ namespace ServerPDS
                         //remove from db oldest version and put in remvoelist_ those files to be removed phisically of the old version that are not referenced in other versions
                         if (Convert.ToInt32(last_version) >= MyGlobal.num_versions)
                         {
-                            //TODO:see how i can do this and the next query with a single one. not in and not exists seems not to work
                             query ="select filename,path from files f1 JOIN (SELECT Min(folder_version) AS min_id FROM files where username='"+username+"') f2 WHERE f1.username='"+username+"' and f1.folder_version  = f2.min_id and f1.filename not in (select filename from files f3 where f3.username=f1.username and f3.filename=f1.filename and f3.path=f1.path and f3.folder_version>f2.min_id)";
                             List<string>[] files_to_remove = db.Select(query, new List<string>[2], false);
                             remove_dict  = files_to_remove[0].Zip(files_to_remove[1], (k, v) => new { k, v })
