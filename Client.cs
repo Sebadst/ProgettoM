@@ -290,7 +290,7 @@ namespace ProgettoPDS
             {
                 
                 f = f.Substring(f.LastIndexOf("\\"), f.Length - f.LastIndexOf("\\"));
-                FileStream fStream = new FileStream(down_folder+"\\" + f + ".zip", FileMode.Create);
+                FileStream fStream = new FileStream(down_folder+ f + ".zip", FileMode.Create);
                 // read the file in chunks of 1MB
                 var buffer = new byte[1024];
                 int bytesRead;
