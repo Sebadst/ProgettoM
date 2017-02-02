@@ -266,8 +266,8 @@ namespace ProgettoPDS
                     if (DateTime.TryParseExact(f, format, new CultureInfo("en-US"),
                                     DateTimeStyles.None, out date))
                         return;
-                    lock (pbar_monitor)
-                    {
+                    //lock (pbar_monitor)
+                    //{
                         if (pbar.Visibility == Visibility.Hidden)
                         {
                             //asynchronous logic
@@ -290,7 +290,7 @@ namespace ProgettoPDS
                         {
                             message.Content = "Sincronizzazione in corso."+Environment.NewLine+"Attendere la fine e riprovare il download";
                         }
-                    }
+                   // }
                     
                 }
                 catch (Exception ex)
@@ -387,11 +387,11 @@ namespace ProgettoPDS
             if (e.UserState == null)
             {
                 message.Content = "";
-               // lock(pbar_monitor)
+                //lock(pbar_monitor)
                 //{
                     pbar.Visibility = Visibility.Visible;
                     pbar.IsIndeterminate = true;   
-               // }
+                //}
                 
             }
         }
@@ -413,7 +413,7 @@ namespace ProgettoPDS
             {
                 message.Content = "Download in corso" + Environment.NewLine + "la sincronizzazione verrà rimandata";
             }
-            if ((int)e.Result != -1)
+            else if ((int)e.Result != -1)
             {
                 message.Content = "Sincronizzazione ok.";
             }
@@ -483,18 +483,22 @@ namespace ProgettoPDS
 
         void download_DoWork(object sender, DoWorkEventArgs e)
         {
-            try
+            lock (pbar_monitor)
             {
-                var arg = (download_arguments)e.Argument; // to access elements ui from this thread
-                (sender as BackgroundWorker).ReportProgress(0); //start pbar
-                client.connect_to_server();
-                client.download_file(arg.file, arg.path,arg.isDirectory);
-                e.Result = 1;
-            }           
-            catch (Exception ex)
-            {
-                e.Result = -1;
+                try
+                {
+                    var arg = (download_arguments)e.Argument; // to access elements ui from this thread
+                    (sender as BackgroundWorker).ReportProgress(0); //start pbar
+                    client.connect_to_server();
+                    client.download_file(arg.file, arg.path, arg.isDirectory);
+                    e.Result = 1;
+                }
+                catch (Exception ex)
+                {
+                    e.Result = -1;
+                }
             }
+           
         }
         void download_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
