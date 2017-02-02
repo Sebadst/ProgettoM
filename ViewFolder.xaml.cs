@@ -251,7 +251,7 @@ namespace ProgettoPDS
                     message.Content = "";
                     try
                     {
-                       /*if ((folders.SelectedItem as MenuItem).isDirectory == true)
+                        /*if ((folders.SelectedItem as MenuItem).isDirectory == true)
                         {
                             message.Content = "Puoi scaricare solo files, non cartelle";
                             return;
@@ -270,9 +270,21 @@ namespace ProgettoPDS
                     {
                         if (pbar.Visibility == Visibility.Hidden)
                         {
-                            client.connect_to_server();
+                            //asynchronous logic
+                            BackgroundWorker worker = new BackgroundWorker();
+                            worker.WorkerReportsProgress = true;
+                            worker.DoWork += download_DoWork;
+                            worker.ProgressChanged += worker_ProgressChanged;
+                            worker.RunWorkerCompleted += download_RunWorkerCompleted;
+                            var arg = new download_arguments() { file = f, path = this.path.Text };
+                            worker.RunWorkerAsync(arg);
+
+
+                            /*client.connect_to_server();
                             client.download_file(f, this.path.Text);
                             message.Content = "File scaricato correttamente";//possibility of file not present : I will print just errore di connessione
+                        
+                             */
                         }
                         else
                         {
@@ -333,12 +345,22 @@ namespace ProgettoPDS
                     }
                     else
                     {
-                        int result = 0; // used for the worker result
-                        var arg = (arguments)e.Argument; // to access elements ui from this thread
-                        (sender as BackgroundWorker).ReportProgress(0); //start pbar
-                        client.connect_to_server();
-                        client.synchronize(arg.path);
-                        e.Result = result;
+                        lock (pbar_monitor) //used to avoid that I read that is hidden and immediately after it becomes visible from the backgroundworker
+                        {
+                            if (pbar.Visibility == Visibility.Hidden)
+                            {
+                                int result = 0; // used for the worker result
+                                var arg = (arguments)e.Argument; // to access elements ui from this thread
+                                (sender as BackgroundWorker).ReportProgress(0); //start pbar
+                                client.connect_to_server();
+                                client.synchronize(arg.path);
+                                e.Result = result;
+                            }
+                            else
+                            {
+                                e.Result = 5; //cannot synch because I am downloading. i will sync at the next time
+                            }
+                        }
                     }
                 }
                 
@@ -365,11 +387,11 @@ namespace ProgettoPDS
             if (e.UserState == null)
             {
                 message.Content = "";
-                lock(pbar_monitor)
-                {
+               // lock(pbar_monitor)
+                //{
                     pbar.Visibility = Visibility.Visible;
                     pbar.IsIndeterminate = true;   
-                }
+               // }
                 
             }
         }
@@ -379,13 +401,17 @@ namespace ProgettoPDS
             /*
              * when synchronization ends, restart the timeout for next synchronization
              */
-            lock (pbar_monitor)
-            {
+            //lock (pbar_monitor)
+            //{
                 pbar.Visibility = Visibility.Hidden;
-            }
+            //}
             if (e.Result == null)
             {
                 return;
+            }
+            if ((int)e.Result == 5)
+            {
+                message.Content = "Download in corso" + Environment.NewLine + "la sincronizzazione verrà rimandata";
             }
             if ((int)e.Result != -1)
             {
@@ -454,6 +480,36 @@ namespace ProgettoPDS
             }
             
         }
+
+        void download_DoWork(object sender, DoWorkEventArgs e)
+        {
+            try
+            {
+                var arg = (download_arguments)e.Argument; // to access elements ui from this thread
+                (sender as BackgroundWorker).ReportProgress(0); //start pbar
+                client.connect_to_server();
+                client.download_file(arg.file, arg.path);
+                e.Result = 1;
+            }           
+            catch (Exception ex)
+            {
+                e.Result = -1;
+            }
+        }
+        void download_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if ((int)e.Result != -1)
+            {
+                    pbar.IsIndeterminate = false;
+                    pbar.Visibility = Visibility.Hidden;
+                    message.Content = "File scaricato correttamente";
+            }
+            else
+            {
+                message.Content = "Errore di connessione al server" + Environment.NewLine + "nel download";
+            }
+        }
+
         
 
         //TODO: refactor this code
@@ -603,4 +659,9 @@ namespace ProgettoPDS
     {
         public string path;
     }    
+    public class download_arguments
+    {
+        public string file;
+        public string path;
+    }
 }

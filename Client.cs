@@ -387,8 +387,8 @@ namespace ProgettoPDS
                 f = Path.GetFileName(f);
                 f = Path.Combine(down_folder, f);
                 FileStream fStream = new FileStream(f, FileMode.Create);
-                // read the file in chunks of 1KB
-                var buffer = new byte[1024];
+                // read the file in chunks of 1MB
+                var buffer = new byte[1048576];
                 int bytesRead;
                 //read the length
                 bytesRead = tcpclnt.Client.Receive(buffer);
