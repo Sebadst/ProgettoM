@@ -36,14 +36,16 @@ namespace ProgettoPDS
                 message.Content = "Non lasciare campi vuoti";
             else if (password.Password != repassword.Password)
                 message.Content = "password diversa da ripeti password";
+            else if (username.Text.Contains(".") || password.Password.Contains("."))
+                message.Content = "I campi non possono contenere '.'";
             else
             {
                 message.Content = "Ok";
                 //check if username already present in db
                 Client client = new Client(username.Text, password.Password);
                 client.connect_to_server();
-                int signup=client.signup(username.Text, password.Password);
-                if (signup==1)
+                int signup = client.signup(username.Text, password.Password);
+                if (signup == 1)
                 {
                     //signup ok. open user main_window
                     MainWindow m = new MainWindow("Registrazione effettuata");
